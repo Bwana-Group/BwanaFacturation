@@ -67,7 +67,9 @@ def liste_devis(request):
 
     devis = Devis.objects.filter(utilisateur=request.user)
 
-    if statut:
+    if statut == 'en_attente':
+        devis = devis.filter(statut__in=DEVIS_EN_COURS)
+    elif statut:
         devis = devis.filter(statut=statut)
     if recherche:
         devis = devis.filter(
@@ -77,7 +79,7 @@ def liste_devis(request):
         )
 
     nb_total = Devis.objects.filter(utilisateur=request.user).count()
-    nb_attente = Devis.objects.filter(utilisateur=request.user, statut='en_attente').count()
+    nb_attente = Devis.objects.filter(utilisateur=request.user, statut__in=DEVIS_EN_COURS).count()
     nb_acceptes = Devis.objects.filter(utilisateur=request.user, statut='accepte').count()
     nb_refuses = Devis.objects.filter(utilisateur=request.user, statut='refuse').count()
 
@@ -820,7 +822,7 @@ def tableau_de_bord(request):
 
     nb_clients = Client.objects.filter(utilisateur=request.user).count()
     nb_devis = Devis.objects.filter(utilisateur=request.user).count()
-    nb_devis_en_attente = Devis.objects.filter(utilisateur=request.user, statut='en_attente').count()
+    nb_devis_en_attente = Devis.objects.filter(utilisateur=request.user, statut__in=DEVIS_EN_COURS).count()
     nb_factures = Facture.objects.filter(utilisateur=request.user).count()
     nb_factures_payees = Facture.objects.filter(utilisateur=request.user, statut='payee').count()
 

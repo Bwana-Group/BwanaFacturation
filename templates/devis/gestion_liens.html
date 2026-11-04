@@ -20,15 +20,17 @@
                     </div>
                     <div>
                         {% if devis.statut == 'en_attente' %}
-                            <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-hourglass-split me-1"></i>En attente d'approbation</span>
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-hourglass-split me-1"></i>En attente</span>
                         {% elif devis.statut == 'approuve_superieur' %}
-                            <span class="badge bg-info text-dark fs-6 px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>Approuvé - En attente client</span>
+                            <span class="badge bg-info text-dark fs-6 px-3 py-2"><i class="bi bi-hourglass-split me-1"></i>En attente du client</span>
                         {% elif devis.statut == 'accepte' %}
                             <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-patch-check-fill me-1"></i>Accepté par le client</span>
                         {% elif devis.statut == 'refuse' %}
                             <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-x-circle-fill me-1"></i>Refusé par le client</span>
                         {% elif devis.statut == 'rejete_superieur' %}
                             <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-x-circle-fill me-1"></i>Rejeté par le supérieur</span>
+                        {% elif devis.statut == 'expire' %}
+                            <span class="badge bg-secondary fs-6 px-3 py-2"><i class="bi bi-hourglass-bottom me-1"></i>Expiré</span>
                         {% endif %}
                     </div>
                 </div>
@@ -59,10 +61,13 @@
                     </a>
                 {% elif devis.statut == 'approuve_superieur' %}
                     <div class="alert alert-success">
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        <i class="bi bi-check-circle-fill text-success me-1"></i>Devis approuvé par le supérieur le {{ devis.approuve_le|date:"d/m/Y H:i" }}
-                        {% if devis.commentaire_approbation %}
-                            <br><small class="text-muted">Commentaire : {{ devis.commentaire_approbation }}</small>
+                        {% if devis.envoi_direct %}
+                            <i class="bi bi-send-check-fill me-2"></i>Envoyé directement au client, sans approbation, le {{ devis.approuve_le|date:"d/m/Y H:i" }}
+                        {% else %}
+                            <i class="bi bi-check-circle-fill me-2"></i>Devis approuvé par le supérieur le {{ devis.approuve_le|date:"d/m/Y H:i" }}
+                            {% if devis.commentaire_approbation %}
+                                <br><small class="text-muted">Commentaire : {{ devis.commentaire_approbation }}</small>
+                            {% endif %}
                         {% endif %}
                     </div>
                 {% elif devis.statut == 'rejete_superieur' %}

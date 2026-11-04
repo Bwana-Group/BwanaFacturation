@@ -141,19 +141,7 @@
                             <div class="p-3 rounded" style="background: #f8f9fa;">
                                 <div class="text-muted small">Statut</div>
                                 <div>
-                                    {% if devis.statut == 'en_attente' %}
-                                        <span class="badge" style="background: #344e65; color: white;">En attente</span>
-                                    {% elif devis.statut == 'accepte' %}
-                                        <span class="badge" style="background: #2d6a9f; color: white;">Accepté</span>
-                                    {% elif devis.statut == 'approuve_superieur' %}
-                                        <span class="badge" style="background: #17a2b8; color: white;"><i class="bi bi-check-circle-fill me-1"></i>Approuvé par supérieur</span>
-                                    {% elif devis.statut == 'rejete_superieur' %}
-                                        <span class="badge" style="background: #dc3545; color: white;"><i class="bi bi-x-circle-fill me-1"></i>Rejeté par supérieur</span>
-                                    {% elif devis.statut == 'expire' %}
-                                        <span class="badge bg-secondary">Expiré</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Refusé</span>
-                                    {% endif %}
+                                    {% include 'partials/badge_devis.html' with doc=devis %}
                                 </div>
                             </div>
                         </div>
@@ -188,16 +176,21 @@
                         </div>
                         
                         <!-- ✅ Affichage des informations d'approbation -->
-                        {% if devis.approuve_par %}
+                        {% if devis.approuve_le and devis.statut != 'en_attente' and devis.statut != 'rejete_superieur' %}
                         <div class="col-12">
                             <div class="p-3 rounded" style="background: #d1e7dd;">
-                                <div class="text-muted small">Approbation</div>
+                                <div class="text-muted small">{% if devis.envoi_direct %}Envoi{% else %}Approbation{% endif %}</div>
                                 <div class="mt-1">
-                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
-                                    Approuvé par <strong>{{ devis.approuve_par.get_full_name|default:devis.approuve_par.username }}</strong>
-                                    le {{ devis.approuve_le|date:"d/m/Y H:i" }}
-                                    {% if devis.commentaire_approbation %}
-                                        <br><small class="text-muted">Commentaire : {{ devis.commentaire_approbation }}</small>
+                                    {% if devis.envoi_direct %}
+                                        <i class="bi bi-send-check-fill text-success me-1"></i>
+                                        Envoyé directement au client, sans approbation par un supérieur, le {{ devis.approuve_le|date:"d/m/Y H:i" }}
+                                    {% else %}
+                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                        Approuvé par {% if devis.approuve_par %}<strong>{{ devis.approuve_par.get_full_name|default:devis.approuve_par.username }}</strong>{% else %}le supérieur{% endif %}
+                                        le {{ devis.approuve_le|date:"d/m/Y H:i" }}
+                                        {% if devis.commentaire_approbation %}
+                                            <br><small class="text-muted">Commentaire : {{ devis.commentaire_approbation }}</small>
+                                        {% endif %}
                                     {% endif %}
                                 </div>
                             </div>
@@ -404,8 +397,8 @@
                 <!-- ✅ Indicateur du statut d'approbation -->
                 {% if devis.statut == 'approuve_superieur' %}
                 <div class="alert alert-info mt-3 mb-0 small" style="border-radius: 12px;">
-                    <i class="bi bi-check-circle-fill me-1"></i>
-                    Devis approuvé — Envoyez le lien au client
+                    <i class="bi bi-hourglass-split me-1"></i>
+                    En attente de la réponse du client
                 </div>
                 {% elif devis.statut == 'rejete_superieur' %}
                 <div class="alert alert-danger mt-3 mb-0 small" style="border-radius: 12px;">

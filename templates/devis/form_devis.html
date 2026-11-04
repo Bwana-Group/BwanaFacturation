@@ -83,7 +83,7 @@
                             <i class="bi bi-tag me-1"></i>Statut
                         </label>
                         <input type="text" class="form-control" readonly
-                               value="{% if devis %}{{ devis.get_statut_display }}{% else %}En attente d'approbation{% endif %}">
+                               value="{% if devis %}{{ devis.get_statut_display }}{% else %}En attente{% endif %}">
                         <div class="form-text">Mis à jour par le circuit d'approbation.</div>
                     </div>
                     <div class="col-12">

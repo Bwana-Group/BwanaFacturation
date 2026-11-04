@@ -1,0 +1,6 @@
+{% comment %} Pastille de statut d'un devis. Contexte attendu : doc (le devis). {% endcomment %}
+{% if doc.statut == 'en_attente' %}<span class="badge" style="background: #344e65; color: white;">{{ doc.get_statut_display }}</span>
+{% elif doc.statut == 'approuve_superieur' %}<span class="badge" style="background: #17a2b8; color: white;">{{ doc.get_statut_display }}</span>
+{% elif doc.statut == 'accepte' %}<span class="badge" style="background: #2d6a9f; color: white;">{{ doc.get_statut_display }}</span>
+{% elif doc.statut == 'expire' %}<span class="badge bg-secondary">{{ doc.get_statut_display }}</span>
+{% else %}<span class="badge bg-danger">{{ doc.get_statut_display }}</span>{% endif %}
