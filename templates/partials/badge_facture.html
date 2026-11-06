@@ -1,0 +1,6 @@
+{% comment %} Pastille de statut d'une facture. Contexte attendu : doc (la facture). {% endcomment %}
+{% if doc.statut == 'en_attente' %}<span class="badge" style="background: #ffc107; color: #1e3a5f;">{{ doc.get_statut_display }}</span>
+{% elif doc.statut == 'approuvee' %}<span class="badge" style="background: #17a2b8; color: white;">{{ doc.get_statut_display }}</span>
+{% elif doc.statut == 'payee' %}<span class="badge" style="background: #2d6a9f; color: white;">{{ doc.get_statut_display }}</span>
+{% elif doc.statut == 'annulee' %}<span class="badge bg-secondary">{{ doc.get_statut_display }}</span>
+{% else %}<span class="badge bg-danger">{{ doc.get_statut_display }}</span>{% endif %}

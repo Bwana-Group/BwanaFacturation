@@ -17,6 +17,7 @@ urlpatterns = [
     
     # Tableau de bord
     path('tableau-de-bord/', views.tableau_de_bord, name='tableau_de_bord'),
+    path('api/etat/', views.api_etat_documents, name='api_etat_documents'),
     
     # ✅ NOUVELLES URLs POUR LE SYSTÈME D'APPROBATION
     # Gestion des liens
@@ -25,5 +26,6 @@ urlpatterns = [
     # Pages publiques (sans login)
     path('public/approbation/<str:token>/', views.visualiser_devis_approbation, name='visualiser_devis_approbation'),
     path('public/client/<str:token>/', views.visualiser_devis_client, name='visualiser_devis_client'),
+    path('public/pdf/<str:token>/', views.telecharger_pdf_devis_public, name='pdf_devis_public'),
     path('<int:pk>/envoyer/', views.envoyer_devis_email, name='envoyer_devis_email'),
 ]

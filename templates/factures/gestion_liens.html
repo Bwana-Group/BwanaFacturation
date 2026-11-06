@@ -2,7 +2,8 @@
 {% load static %}
 
 {% block title %}Liens de la Facture {{ facture.numero }}{% endblock %}
-{% block page_title %}📋 Liens de la Facture {{ facture.numero }}{% endblock %}
+{% block auto_refresh %}1{% endblock %}
+{% block page_title %}Liens de la Facture {{ facture.numero }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -18,15 +19,15 @@
                     </div>
                     <div>
                         {% if facture.statut == 'en_attente' %}
-                            <span class="badge bg-warning text-dark fs-6 px-3 py-2">⏳ En attente d'approbation</span>
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-hourglass-split me-1"></i>En attente d'approbation</span>
                         {% elif facture.statut == 'approuvee' %}
-                            <span class="badge bg-info text-dark fs-6 px-3 py-2">✅ Approuvée - En attente client</span>
+                            <span class="badge bg-info text-dark fs-6 px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>Approuvée - En attente client</span>
                         {% elif facture.statut == 'non_payee' %}
-                            <span class="badge bg-primary fs-6 px-3 py-2">💰 En attente de paiement</span>
+                            <span class="badge bg-primary fs-6 px-3 py-2"><i class="bi bi-cash-coin me-1"></i>En attente de paiement</span>
                         {% elif facture.statut == 'payee' %}
-                            <span class="badge bg-success fs-6 px-3 py-2">🎉 Payée</span>
+                            <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-patch-check-fill me-1"></i>Payée</span>
                         {% elif facture.statut == 'rejetee' %}
-                            <span class="badge bg-danger fs-6 px-3 py-2">❌ Rejetée</span>
+                            <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-x-circle-fill me-1"></i>Rejetée</span>
                         {% else %}
                             <span class="badge bg-secondary fs-6 px-3 py-2">{{ facture.get_statut_display }}</span>
                         {% endif %}
@@ -60,7 +61,7 @@
                 {% elif facture.statut == 'approuvee' %}
                     <div class="alert alert-success">
                         <i class="bi bi-check-circle-fill me-2"></i>
-                        ✅ Facture approuvée par le supérieur le {{ facture.approuve_le|date:"d/m/Y H:i" }}
+                        <i class="bi bi-check-circle-fill text-success me-1"></i>Facture approuvée par le supérieur le {{ facture.approuve_le|date:"d/m/Y H:i" }}
                         {% if facture.commentaire_approbation %}
                             <br><small class="text-muted">Commentaire : {{ facture.commentaire_approbation }}</small>
                         {% endif %}
@@ -68,7 +69,7 @@
                 {% elif facture.statut == 'rejetee' %}
                     <div class="alert alert-danger">
                         <i class="bi bi-x-circle-fill me-2"></i>
-                        ❌ Facture rejetée par le supérieur
+                        <i class="bi bi-x-circle-fill text-danger me-1"></i>Facture rejetée par le supérieur
                         {% if facture.commentaire_approbation %}
                             <br><small>Motif : {{ facture.commentaire_approbation }}</small>
                         {% endif %}
@@ -102,12 +103,12 @@
                 {% elif facture.statut == 'non_payee' %}
                     <div class="alert alert-success">
                         <i class="bi bi-check-circle-fill me-2"></i>
-                        ✅ Facture acceptée par le client le {{ facture.accepte_client_le|date:"d/m/Y H:i" }}
+                        <i class="bi bi-check-circle-fill text-success me-1"></i>Facture acceptée par le client le {{ facture.accepte_client_le|date:"d/m/Y H:i" }}
                     </div>
                 {% elif facture.statut == 'rejetee' and facture.accepte_par_client is False %}
                     <div class="alert alert-danger">
                         <i class="bi bi-x-circle-fill me-2"></i>
-                        ❌ Facture refusée par le client le {{ facture.accepte_client_le|date:"d/m/Y H:i" }}
+                        <i class="bi bi-x-circle-fill text-danger me-1"></i>Facture refusée par le client le {{ facture.accepte_client_le|date:"d/m/Y H:i" }}
                     </div>
                 {% elif facture.statut == 'en_attente' %}
                     <div class="alert alert-secondary">

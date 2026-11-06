@@ -43,10 +43,10 @@ def ajouter_client(request):
             client = form.save(commit=False)
             client.utilisateur = request.user
             client.save()
-            messages.success(request, f'✅ Client "{client.nom}" ajouté avec succès !')
+            messages.success(request, f'Client "{client.nom}" ajouté avec succès !')
             return redirect('liste_clients')
         else:
-            messages.error(request, '❌ Veuillez corriger les erreurs.')
+            messages.error(request, 'Veuillez corriger les erreurs.')
     else:
         form = ClientForm()
 
@@ -66,10 +66,10 @@ def modifier_client(request, pk):
         form = ClientForm(request.POST, request.FILES, instance=client)
         if form.is_valid():
             form.save()
-            messages.success(request, f'✏️ Client "{client.nom}" modifié avec succès !')
+            messages.success(request, f'Client "{client.nom}" modifié avec succès !')
             return redirect('liste_clients')
         else:
-            messages.error(request, '❌ Veuillez corriger les erreurs.')
+            messages.error(request, 'Veuillez corriger les erreurs.')
     else:
         form = ClientForm(instance=client)
 
@@ -89,7 +89,7 @@ def supprimer_client(request, pk):
     if request.method == 'POST':
         nom = client.nom
         client.delete()
-        messages.success(request, f'🗑️ Client "{nom}" supprimé.')
+        messages.success(request, f'Client "{nom}" supprimé.')
         return redirect('liste_clients')
 
     return render(request, 'clients/confirmer_suppression.html', {'client': client})
@@ -123,19 +123,8 @@ def api_client_info(request, pk):
 
         taxes = []
         if client.pays_obj:
-            # Base des taxes actives du pays
-            taxes_query = client.pays_obj.taxes.filter(actif=True)
-            
-            # ✅ Filtre STRICT par province
-            if client.province and client.province.strip():
-                taxes_query = taxes_query.filter(province=client.province)
-                logger.info(f"  - Filtre province: {client.province} -> {taxes_query.count()} taxes")
-            else:
-                # Si pas de province, ne retourner AUCUNE taxe
-                taxes_query = taxes_query.none()
-                logger.warning(f"  - Client sans province -> aucune taxe")
-            
-            for taxe in taxes_query.order_by('ordre'):
+            # Taxes nationales + taxes de la province du client
+            for taxe in client.taxes_disponibles:
                 taxes.append({
                     'id': taxe.id,
                     'nom': taxe.nom,
@@ -158,8 +147,9 @@ def api_client_info(request, pk):
             'type_taxe': client.type_taxe_nom,
             'taxes': taxes,
             'province': client.province or '',
+            'email': client.email or '',
         })
-        
+
     except Exception as e:
         logger.error(f"Erreur dans api_client_info: {str(e)}")
         logger.error(traceback.format_exc())
@@ -186,18 +176,8 @@ def api_client_taxes(request, pk):
 
         taxes = []
         if client.pays_obj:
-            # Base des taxes actives du pays
-            taxes_query = client.pays_obj.taxes.filter(actif=True)
-            
-            # ✅ Filtre STRICT par province
-            if client.province and client.province.strip():
-                taxes_query = taxes_query.filter(province=client.province)
-                logger.info(f"  - Taxes trouvées: {taxes_query.count()}")
-            else:
-                taxes_query = taxes_query.none()
-                logger.warning(f"  - Client sans province -> aucune taxe")
-            
-            for taxe in taxes_query.order_by('ordre'):
+            # Taxes nationales + taxes de la province du client
+            for taxe in client.taxes_disponibles:
                 taxes.append({
                     'id': taxe.id,
                     'nom': taxe.nom,

@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}Devis{% endblock %}
+{% block auto_refresh %}1{% endblock %}
 {% block page_title %}Gestion des Devis{% endblock %}
 
 {% block content %}
@@ -108,6 +109,10 @@
                        class="btn btn-sm {% if statut == 'refuse' %}btn-danger{% else %}btn-outline-danger{% endif %}">
                         <i class="bi bi-x-lg"></i> Refusés
                     </a>
+                    <a href="?statut=expire"
+                       class="btn btn-sm {% if statut == 'expire' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                        <i class="bi bi-hourglass-bottom"></i> Expirés
+                    </a>
                 </div>
                 <a href="{% url 'ajouter_devis' %}" class="btn" 
                    style="background: linear-gradient(135deg, #1e3a5f, #2d6a9f); color: white; border: none;">
@@ -159,19 +164,9 @@
                             {% endwith %}
                         </td>
                         <td data-label="Statut">
-                            {% if d.statut == 'en_attente' %}
-                                <span class="badge" style="background: #344e65; color: white;">En attente</span>
-                            {% elif d.statut == 'accepte' %}
-                                <span class="badge" style="background: #2d6a9f; color: white;">Accepté</span>
-                                {% if d.transforme_en_facture %}
-                                    <span class="badge ms-1" style="background: #1e3a5f; color: white;">Facturé</span>
-                                {% endif %}
-                            {% elif d.statut == 'approuve_superieur' %}
-                                <span class="badge" style="background: #17a2b8; color: white;">Approuvé</span>
-                            {% elif d.statut == 'rejete_superieur' %}
-                                <span class="badge" style="background: #dc3545; color: white;">Rejeté</span>
-                            {% else %}
-                                <span class="badge bg-danger">Refusé</span>
+                            {% include 'partials/badge_devis.html' with doc=d %}
+                            {% if d.statut == 'accepte' and d.transforme_en_facture %}
+                                <span class="badge ms-1" style="background: #1e3a5f; color: white;">Facturé</span>
                             {% endif %}
                         </td>
                         <td data-label="Actions" class="text-center">

@@ -114,10 +114,10 @@ class PaysTaxeAdmin(admin.ModelAdmin):
         if obj.pays_migre:
             link = reverse('admin:taxes_pays_change', args=[obj.pays_migre.id])
             return format_html(
-                '<a href="{}" style="color: green;">✅ Migré vers {}</a>',
+                '<a href="{}" style="color: green;">Migré vers {}</a>',
                 link, obj.pays_migre.nom
             )
-        return format_html('<span style="color: orange;">⚠️ Non migré</span>')
+        return format_html('<span style="color: orange;">Non migré</span>')
     statut_migration.short_description = "Statut migration"
     
     def migrer_vers_nouveau_modele(self, request, queryset):
@@ -130,16 +130,16 @@ class PaysTaxeAdmin(admin.ModelAdmin):
                     compteur += 1
                     self.message_user(
                         request, 
-                        f'✅ {obj.nom} migré avec succès vers {pays.nom} (Taxe: {taxe.code} {taxe.taux}%)'
+                        f'{obj.nom} migré avec succès vers {pays.nom} (Taxe: {taxe.code} {taxe.taux}%)'
                     )
                 except Exception as e:
                     self.message_user(
                         request, 
-                        f'❌ Erreur lors de la migration de {obj.nom}: {str(e)}',
+                        f'Erreur lors de la migration de {obj.nom}: {str(e)}',
                         level='ERROR'
                     )
         if compteur > 0:
-            self.message_user(request, f'🎉 {compteur} pays/taxe(s) migré(s) avec succès!')
+            self.message_user(request, f'{compteur} pays/taxe(s) migré(s) avec succès!')
     migrer_vers_nouveau_modele.short_description = "Migrer vers le nouveau modèle"
 
 

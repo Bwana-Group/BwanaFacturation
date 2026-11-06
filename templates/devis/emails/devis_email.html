@@ -1,36 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>Devis {{ devis.numero }}</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #1e3a5f; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; }
-        .btn { background: #2d6a9f; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-        .footer { font-size: 12px; color: #666; text-align: center; margin-top: 20px; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Devis {{ devis.numero }}</h1>
-        </div>
-        <div class="content">
-            <p>Bonjour <strong>{{ client.nom }} {{ client.prenom }}</strong>,</p>
-            <p>Veuillez trouver ci-joint votre devis n°<strong>{{ devis.numero }}</strong>.</p>
-            <p><strong>Montant total :</strong> {{ total_ttc|floatformat:0 }} {{ devise }}</p>
-            <p><strong>Date de validité :</strong> {{ devis.date_validite|date:"d/m/Y" }}</p>
-            <div style="text-align: center; margin: 25px 0;">
-                <a href="{{ lien_devis }}" class="btn">Voir le devis en ligne</a>
-            </div>
-            <p>Nous restons à votre disposition.</p>
-            <p>Cordialement.</p>
-        </div>
-        <div class="footer">
-            <p>Ce message est généré automatiquement.</p>
-        </div>
-    </div>
+<body style="margin:0; padding:0; background:#f3f5f9; font-family: Arial, Helvetica, sans-serif; color:#1c2533;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f9; padding:24px 12px;">
+<tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; border-radius:14px; overflow:hidden; border:1px solid #e4e8ef;">
+        <tr>
+            <td style="background:#1e3a5f; padding:28px 32px; color:#ffffff;">
+                <div style="font-size:12px; letter-spacing:2px; text-transform:uppercase; opacity:.75;">Devis</div>
+                <div style="font-size:24px; font-weight:bold; margin-top:4px;">{{ devis.numero }}</div>
+                {% if utilisateur.profil.nom_entreprise %}<div style="font-size:14px; opacity:.8; margin-top:4px;">{{ utilisateur.profil.nom_entreprise }}</div>{% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:28px 32px; font-size:15px; line-height:1.6;">
+                <p style="margin:0 0 14px;">Bonjour <strong>{{ client.prenom }} {{ client.nom }}</strong>,</p>
+                <p style="margin:0 0 20px;">Veuillez trouver ci-joint notre devis n°<strong>{{ devis.numero }}</strong>.
+                {% if reponse_possible %}Vous pouvez le consulter et l'accepter en ligne en un clic, <strong>sans créer de compte</strong>.{% else %}Vous pourrez le consulter en ligne et y répondre, <strong>sans créer de compte</strong>, dès sa validation finale.{% endif %}</p>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f8fb; border-radius:10px; margin-bottom:24px;">
+                    <tr><td style="padding:16px 20px; font-size:14px;">
+                        <table role="presentation" width="100%" cellpadding="4" cellspacing="0">
+                            <tr><td style="color:#6b7686;">Total HT</td><td align="right">{{ total_ht|floatformat:"2g" }} {{ devise }}</td></tr>
+                            {% for taxe in taxes_details %}
+                            <tr><td style="color:#6b7686;">{{ taxe.nom }} ({{ taxe.taux|floatformat:"-3" }} %)</td><td align="right">{{ taxe.montant|floatformat:"2g" }} {{ devise }}</td></tr>
+                            {% endfor %}
+                            <tr><td style="font-weight:bold; border-top:1px solid #e4e8ef; padding-top:10px;">Total TTC</td>
+                                <td align="right" style="font-weight:bold; font-size:17px; color:#1e3a5f; border-top:1px solid #e4e8ef; padding-top:10px;">{{ total_ttc|floatformat:"2g" }} {{ devise }}</td></tr>
+                            <tr><td style="color:#6b7686;">Valable jusqu'au</td><td align="right">{{ devis.date_validite|date:"d/m/Y" }}</td></tr>
+                        </table>
+                    </td></tr>
+                </table>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr><td align="center" style="padding-bottom:10px;">
+                        <a href="{{ lien_devis }}" style="display:inline-block; background:#2f9e44; color:#ffffff; text-decoration:none; font-weight:bold; padding:13px 28px; border-radius:10px;">
+                            {% if reponse_possible %}Consulter et accepter le devis{% else %}Consulter le devis en ligne{% endif %}
+                        </a>
+                    </td></tr>
+                    <tr><td align="center">
+                        <a href="{{ lien_pdf }}" style="color:#2d6a9f; font-size:14px;">Télécharger le PDF</a>
+                    </td></tr>
+                </table>
+
+                <p style="margin:24px 0 0;">Nous restons à votre disposition pour toute question{% if utilisateur.email %} : répondez simplement à cet email{% endif %}.</p>
+                <p style="margin:8px 0 0;">Cordialement,<br><strong>{{ utilisateur.get_full_name|default:utilisateur.username }}</strong></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:16px 32px; background:#f6f8fb; font-size:12px; color:#6b7686; text-align:center;">
+                Ce lien est personnel : ne le transférez pas. Envoyé avec Bwana Facturation.
+            </td>
+        </tr>
+    </table>
+</td></tr>
+</table>
 </body>
 </html>

@@ -15,7 +15,7 @@ class LoginHistory(models.Model):
         verbose_name = "Historique connexion"
 
     def __str__(self):
-        return f"{self.user.username} — {self.date:%d/%m/%Y %H:%M} — {'✅' if self.succes else '❌'}"
+        return f"{self.user.username} — {self.date:%d/%m/%Y %H:%M} — {'succès' if self.succes else 'échec'}"
 
     @property
     def navigateur(self):

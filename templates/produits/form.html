@@ -140,7 +140,7 @@
                             </a>
                         </div>
                         {% if produit %}
-                        <a href="{% url 'dupliquer_produit' produit.pk %}"
+                        <a data-post href="{% url 'dupliquer_produit' produit.pk %}"
                            class="btn btn-outline-info px-4 py-2"
                            onclick="return confirm('Créer une copie de ce produit ?')">
                             <i class="bi bi-files me-2"></i>Dupliquer
@@ -393,7 +393,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (lien) {
                         const badge = document.createElement('span');
                         badge.className   = 'badge bg-success ms-2';
-                        badge.textContent = `✅ "${data.nom}" ajoutée`;
+                        badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>';
+                        badge.append(`"${data.nom}" ajoutée`);
                         lien.after(badge);
                         setTimeout(() => badge.remove(), 3000);
                     }
@@ -479,7 +480,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (lien) {
                         const badge = document.createElement('span');
                         badge.className   = 'badge bg-success ms-2';
-                        badge.textContent = `✅ "${data.nom}" ajoutée`;
+                        badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>';
+                        badge.append(`"${data.nom}" ajoutée`);
                         lien.after(badge);
                         setTimeout(() => badge.remove(), 3000);
                     }

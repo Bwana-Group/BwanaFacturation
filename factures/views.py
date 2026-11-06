@@ -6,8 +6,9 @@ from django import forms as django_forms
 from .models import Facture, LigneFacture 
 from .forms import FactureForm, LigneFactureForm, LigneFactureFormSet, BaseLigneFactureFormSet
 from produits.models import Produit
-from devis.utils import generer_numero_facture
-from django.http import HttpResponse
+from devis.utils import generer_numero_facture, email_documents_configure, expliquer_erreur_email, MESSAGE_EMAIL_NON_CONFIGURE
+from django.http import HttpResponse, Http404
+from django.db.models import Q
 import os
 from django.conf import settings
 from django.utils import timezone
@@ -139,16 +140,16 @@ def ajouter_facture(request):
 
             if lignes_sauvegardees == 0:
                 facture.delete()
-                messages.error(request, '❌ Veuillez ajouter au moins un produit ou service.')
+                messages.error(request, 'Veuillez ajouter au moins un produit ou service.')
                 return render_creation_facture(request, form, formset)
 
-            messages.success(request, f'✅ Facture {facture.numero} créée !')
+            messages.success(request, f'Facture {facture.numero} créée !')
             
             return redirect('gestion_liens_facture', pk=facture.pk)
         else:
-            messages.error(request, '❌ Veuillez corriger les erreurs.')
-            print(f"❌ ERREURS FORM: {form.errors}")
-            print(f"❌ ERREURS FORMSET: {formset.errors}")
+            messages.error(request, 'Veuillez corriger les erreurs.')
+            print(f"ERREURS FORM: {form.errors}")
+            print(f"ERREURS FORMSET: {formset.errors}")
     else:
         form = FactureForm(request.user)
         formset = LigneFactureFormSet(prefix='lignes', user=request.user)
@@ -176,6 +177,11 @@ def render_creation_facture(request, form, formset):
 def gestion_liens_facture(request, pk):
     """Page pour gérer les liens d'approbation et client"""
     facture = get_object_or_404(Facture, pk=pk, utilisateur=request.user)
+
+    # Documents anciens créés sans liens publics
+    if not facture.token_client or not facture.token_approbation:
+        facture.generer_tokens()
+        facture.save(update_fields=['token_client', 'token_approbation'])
     
     base_url = request.build_absolute_uri('/')[:-1]
     lien_approbation = f"{base_url}{reverse('visualiser_facture_approbation', args=[facture.token_approbation])}"
@@ -191,12 +197,19 @@ def gestion_liens_facture(request, pk):
 def visualiser_facture_approbation(request, token):
     """Page publique pour que le supérieur approuve la facture"""
     facture = get_object_or_404(Facture, token_approbation=token)
-    
-    if facture.approuve_par:
+
+    # Une seule décision possible, tant que la facture est en attente
+    if facture.statut != 'en_attente':
+        if facture.statut == 'rejetee':
+            message = 'Cette facture a déjà été rejetée.'
+        elif facture.statut == 'annulee':
+            message = 'Cette facture a été annulée.'
+        else:
+            message = 'Cette facture a déjà été approuvée.'
         return render(request, 'factures/public/approbation.html', {
             'facture': facture,
             'deja_traite': True,
-            'message_warning': 'Cette facture a déjà été approuvée.'
+            'message_warning': message,
         })
     
     if request.method == 'POST':
@@ -212,7 +225,7 @@ def visualiser_facture_approbation(request, token):
             
             try:
                 send_mail(
-                    subject=f'✅ Facture {facture.numero} approuvée',
+                    subject=f'Facture {facture.numero} approuvée',
                     message=f'Votre facture {facture.numero} a été approuvée.\n\nCommentaire : {commentaire}',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
@@ -224,18 +237,19 @@ def visualiser_facture_approbation(request, token):
             return render(request, 'factures/public/approbation.html', {
                 'facture': facture,
                 'action_effectuee': 'approuver',
-                'message_success': f'✅ Facture {facture.numero} approuvée avec succès !',
+                'message_success': f'Facture {facture.numero} approuvée avec succès !',
                 'commentaire': commentaire
             })
             
         elif action == 'rejeter':
             facture.statut = 'rejetee'
+            facture.approuve_le = timezone.now()
             facture.commentaire_approbation = commentaire
             facture.save()
             
             try:
                 send_mail(
-                    subject=f'❌ Facture {facture.numero} rejetée',
+                    subject=f'Facture {facture.numero} rejetée',
                     message=f'Votre facture {facture.numero} a été rejetée.\n\nMotif : {commentaire}',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
@@ -247,7 +261,7 @@ def visualiser_facture_approbation(request, token):
             return render(request, 'factures/public/approbation.html', {
                 'facture': facture,
                 'action_effectuee': 'rejeter',
-                'message_success': f'❌ Facture {facture.numero} rejetée.',
+                'message_success': f'Facture {facture.numero} rejetée.',
                 'commentaire': commentaire
             })
     
@@ -260,19 +274,20 @@ def visualiser_facture_approbation(request, token):
 def visualiser_facture_client(request, token):
     """Page publique pour que le client accepte la facture"""
     facture = get_object_or_404(Facture, token_client=token)
-    
-    if facture.statut != 'approuvee':
-        return render(request, 'factures/public/client.html', {
-            'facture': facture,
-            'message_warning': 'Cette facture n\'a pas encore été approuvée en interne.',
-            'en_attente': True
-        })
-    
+
+    # Vérifier d'abord si le client a déjà répondu (le statut a changé depuis)
     if facture.accepte_par_client is not None:
         return render(request, 'factures/public/client.html', {
             'facture': facture,
             'deja_repondu': True,
             'message_warning': 'Vous avez déjà répondu à cette facture.'
+        })
+
+    if facture.statut != 'approuvee':
+        return render(request, 'factures/public/client.html', {
+            'facture': facture,
+            'message_warning': 'Cette facture n\'a pas encore été approuvée en interne.',
+            'en_attente': True
         })
     
     if request.method == 'POST':
@@ -286,7 +301,7 @@ def visualiser_facture_client(request, token):
             
             try:
                 send_mail(
-                    subject=f'✅ Facture {facture.numero} acceptée',
+                    subject=f'Facture {facture.numero} acceptée',
                     message=f'Le client {facture.client.nom} a accepté la facture {facture.numero}.',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
@@ -298,7 +313,7 @@ def visualiser_facture_client(request, token):
             return render(request, 'factures/public/client.html', {
                 'facture': facture,
                 'action_effectuee': 'accepter',
-                'message_success': f'✅ Merci ! Votre acceptation a été enregistrée.'
+                'message_success': f'Merci ! Votre acceptation a été enregistrée.'
             })
             
         elif action == 'refuser':
@@ -309,7 +324,7 @@ def visualiser_facture_client(request, token):
             
             try:
                 send_mail(
-                    subject=f'❌ Facture {facture.numero} refusée',
+                    subject=f'Facture {facture.numero} refusée',
                     message=f'Le client {facture.client.nom} a refusé la facture {facture.numero}.',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
@@ -321,7 +336,7 @@ def visualiser_facture_client(request, token):
             return render(request, 'factures/public/client.html', {
                 'facture': facture,
                 'action_effectuee': 'refuser',
-                'message_success': f'ℹ️ Nous avons bien enregistré votre refus.'
+                'message_success': f'Nous avons bien enregistré votre refus.'
             })
     
     return render(request, 'factures/public/client.html', {
@@ -353,7 +368,7 @@ def modifier_facture(request, pk):
     )
 
     if facture.statut == 'payee':
-        messages.error(request, '❌ Une facture payée ne peut pas être modifiée.')
+        messages.error(request, 'Une facture payée ne peut pas être modifiée.')
         return redirect('detail_facture', pk=pk)
 
     if request.method == 'POST':
@@ -362,7 +377,15 @@ def modifier_facture(request, pk):
 
         if form.is_valid() and formset.is_valid():
             facture = form.save(commit=False)
-            
+
+            # Une facture rejetée qui est corrigée repart en approbation
+            if facture.statut == 'rejetee':
+                facture.statut = 'en_attente'
+                facture.approuve_par = None
+                facture.approuve_le = None
+                facture.accepte_par_client = None
+                facture.accepte_client_le = None
+
             # Récupérer les taxes personnalisées
             taxes_perso = request.POST.get('taxes_personnalisees', '')
             if taxes_perso:
@@ -373,7 +396,7 @@ def modifier_facture(request, pk):
                     facture.taxes_personnalisees = {}
             else:
                 facture.taxes_personnalisees = {}
-            
+
             # Désactiver l'ancien système si des taxes personnalisées existent
             if facture.taxes_personnalisees and (facture.taxes_personnalisees.get('ids') or facture.taxes_personnalisees.get('personnalisees')):
                 facture.taux_taxe = 0
@@ -381,9 +404,9 @@ def modifier_facture(request, pk):
             else:
                 facture.taux_taxe = form.cleaned_data.get('taux_taxe', 0)
                 facture.type_taxe = form.cleaned_data.get('type_taxe', 'TVA')
-            
+
             facture.save()
-            
+
             # Sauvegarder les taxes ManyToMany
             if form.cleaned_data.get('taxes'):
                 facture.taxes.set(form.cleaned_data['taxes'])
@@ -401,15 +424,15 @@ def modifier_facture(request, pk):
                     lignes_sauvegardees += 1
 
             if lignes_sauvegardees == 0:
-                messages.error(request, '❌ Veuillez ajouter au moins un produit ou service.')
+                messages.error(request, 'Veuillez ajouter au moins un produit ou service.')
                 return render_modification_facture(request, facture, form, formset)
 
-            messages.success(request, f'✏️ Facture {facture.numero} modifiée !')
+            messages.success(request, f'Facture {facture.numero} modifiée !')
             return redirect('detail_facture', pk=facture.pk)
         else:
-            messages.error(request, '❌ Veuillez corriger les erreurs.')
-            print(f"❌ ERREURS FORM: {form.errors}")
-            print(f"❌ ERREURS FORMSET: {formset.errors}")
+            messages.error(request, 'Veuillez corriger les erreurs.')
+            print(f"ERREURS FORM: {form.errors}")
+            print(f"ERREURS FORMSET: {formset.errors}")
         
         lignes_existantes = []
     else:
@@ -446,7 +469,7 @@ def supprimer_facture(request, pk):
     if request.method == 'POST':
         numero = facture.numero
         facture.delete()
-        messages.success(request, f'🗑️ Facture {numero} supprimée.')
+        messages.success(request, f'Facture {numero} supprimée.')
         return redirect('liste_factures')
 
     return render(request, 'factures/confirmer_suppression.html', {'facture': facture})
@@ -499,10 +522,27 @@ def telecharger_pdf_facture(request, pk):
 # ENVOI DE FACTURE PAR EMAIL (AVEC CONFIGURATION BASE DE DONNÉES)
 # ============================================================
 
+def telecharger_pdf_facture_public(request, token):
+    """PDF de la facture sans compte : accessible avec le jeton du lien client ou d'approbation."""
+    facture = Facture.objects.filter(Q(token_client=token) | Q(token_approbation=token)).first()
+    if facture is None:
+        raise Http404
+    from .pdf import generer_pdf_facture
+    buffer = generer_pdf_facture(facture)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="facture_{facture.numero}.pdf"'
+    return response
+
+
 @login_required
 def envoyer_facture_email(request, pk):
     """Envoie la facture par email avec choix du destinataire"""
     facture = get_object_or_404(Facture, pk=pk, utilisateur=request.user)
+
+    # Documents anciens créés sans liens publics
+    if not facture.token_client or not facture.token_approbation:
+        facture.generer_tokens()
+        facture.save(update_fields=['token_client', 'token_approbation'])
     
     # Récupérer l'option choisie par l'utilisateur
     option_destinataire = request.POST.get('option_destinataire')
@@ -519,6 +559,10 @@ def envoyer_facture_email(request, pk):
             messages.error(request, "Veuillez saisir une adresse email.")
             return redirect('liste_factures')
     
+    if not email_documents_configure():
+        messages.error(request, MESSAGE_EMAIL_NON_CONFIGURE)
+        return redirect('liste_factures')
+
     # Vérifier que le PDF existe, sinon le générer
     if not facture.fichier_pdf or not os.path.exists(facture.fichier_pdf.path):
         from .pdf import generer_pdf_facture
@@ -537,8 +581,8 @@ def envoyer_facture_email(request, pk):
     
     # URLs complètes
     base_url = request.build_absolute_uri('/')[:-1]
-    lien_facture = f"{base_url}{reverse('detail_facture', args=[facture.pk])}"
-    lien_pdf = f"{base_url}{reverse('pdf_facture', args=[facture.pk])}"
+    lien_facture = f"{base_url}{reverse('visualiser_facture_client', args=[facture.token_client])}"
+    lien_pdf = f"{base_url}{reverse('pdf_facture_public', args=[facture.token_client])}"
     
     # Contexte pour le template email
     context = {
@@ -588,6 +632,6 @@ def envoyer_facture_email(request, pk):
         facture.save(update_fields=['date_envoi_email'])
         messages.success(request, f"Facture {facture.numero} envoyée par email à {email_destinataire}")
     except Exception as e:
-        messages.error(request, f"Erreur lors de l'envoi : {str(e)}")
+        messages.error(request, expliquer_erreur_email(e))
     
     return redirect('liste_factures')

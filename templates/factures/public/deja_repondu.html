@@ -15,9 +15,9 @@
                     <hr>
                     <p>Votre réponse : 
                         {% if facture.accepte_par_client %}
-                            <span class="text-success">✅ Acceptée</span>
+                            <span class="text-success"><i class="bi bi-check-circle-fill text-success me-1"></i>Acceptée</span>
                         {% else %}
-                            <span class="text-danger">❌ Refusée</span>
+                            <span class="text-danger"><i class="bi bi-x-circle-fill text-danger me-1"></i>Refusée</span>
                         {% endif %}
                     </p>
                     <p class="small text-muted">Date : {{ facture.accepte_client_le|date:"d/m/Y H:i" }}</p>

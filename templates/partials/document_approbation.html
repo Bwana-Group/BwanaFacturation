@@ -1,0 +1,138 @@
+{% comment %} Page publique d'approbation interne — partagée par les devis et les factures.
+   Contexte attendu : doc, type_doc, feminin, date_label, date_value et les drapeaux
+   de la vue : action_effectuee / message_success / commentaire, deja_traite / message_warning. {% endcomment %}
+{% with devise=doc.get_devise %}
+<div class="container py-4 py-md-5" style="max-width: 860px;">
+    <div class="card overflow-hidden" style="box-shadow: 0 10px 40px rgba(16,24,40,.08);">
+
+        <div class="p-4 p-md-5 text-white" style="background: linear-gradient(135deg, #0f1f33, #1e3a5f);">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <div class="text-uppercase small fw-semibold" style="letter-spacing:.12em; opacity:.7;">
+                        <i class="bi bi-shield-check me-1"></i>Approbation interne · {{ type_doc|capfirst }}
+                    </div>
+                    <h1 class="h3 fw-bold mb-1">{{ doc.numero }}</h1>
+                    <div style="opacity:.8;">
+                        Émis par <strong>{{ doc.utilisateur.get_full_name|default:doc.utilisateur.username }}</strong>
+                        pour <strong>{{ doc.client.nom_complet|default:doc.client.nom }}</strong>{% if doc.client.entreprise %} · {{ doc.client.entreprise }}{% endif %}
+                    </div>
+                </div>
+                <div class="text-md-end">
+                    <span class="badge bg-light text-dark mb-2">{{ doc.get_statut_display }}</span>
+                    <div class="h3 fw-bold mb-0">{{ doc.calculer_total_ttc|floatformat:"0g" }} {{ devise }}</div>
+                    <div class="small mt-1" style="opacity:.7;">{{ date_label }} : {{ date_value|date:"d/m/Y" }}</div>
+                    {% if pdf_url_name and pdf_token %}
+                    <a href="{% url pdf_url_name pdf_token %}" target="_blank" rel="noopener"
+                       class="btn btn-sm btn-light mt-2 fw-semibold">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Télécharger le PDF
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+            {% if action_effectuee %}
+                <div class="alert {% if action_effectuee == 'approuver' %}alert-success{% else %}alert-danger{% endif %} d-flex gap-2 align-items-start mb-4">
+                    <i class="bi {% if action_effectuee == 'approuver' %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} mt-1"></i>
+                    <div>
+                        <strong>{{ message_success }}</strong>
+                        {% if commentaire %}<div class="small mt-1">Commentaire : {{ commentaire }}</div>{% endif %}
+                        {% if info_client %}
+                        <div class="small mt-1">
+                            <i class="bi {% if envoye_client %}bi-send-check{% else %}bi-exclamation-triangle{% endif %} me-1"></i>{{ info_client }}
+                        </div>
+                        {% endif %}
+                        <div class="small mt-1">L'émetteur a été prévenu par email.</div>
+                    </div>
+                </div>
+            {% elif deja_traite %}
+                <div class="alert alert-secondary d-flex gap-2 align-items-start mb-4">
+                    <i class="bi bi-info-circle-fill mt-1"></i>
+                    <div>
+                        <strong>{{ message_warning }}</strong>
+                        {% if doc.approuve_le %}<div class="small mt-1">Décision du {{ doc.approuve_le|date:"d/m/Y à H:i" }}.</div>{% endif %}
+                        {% if doc.commentaire_approbation %}<div class="small mt-1">Commentaire : {{ doc.commentaire_approbation }}</div>{% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-center">Qté</th>
+                            <th class="text-end">Prix unitaire HT</th>
+                            <th class="text-end">Total HT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ligne in doc.lignes.all %}
+                        <tr>
+                            <td>{{ ligne.description }}</td>
+                            <td class="text-center">{{ ligne.quantite|floatformat:"-2" }}</td>
+                            <td class="text-end text-nowrap">{{ ligne.prix_unitaire|floatformat:"2g" }} {{ devise }}</td>
+                            <td class="text-end text-nowrap fw-semibold">{{ ligne.total_ht|floatformat:"2g" }} {{ devise }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end mt-3">
+                <div style="min-width: 280px;">
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">Total HT</span>
+                        <span class="text-nowrap">{{ doc.calculer_total_ht|floatformat:"2g" }} {{ devise }}</span>
+                    </div>
+                    {% for taxe in doc.get_taxes_details %}
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">{{ taxe.nom }} ({{ taxe.taux|floatformat:"-3" }} %)</span>
+                        <span class="text-nowrap">{{ taxe.montant|floatformat:"2g" }} {{ devise }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">Taxes</span><span>—</span>
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex justify-content-between pt-2 mt-1 border-top fw-bold fs-5">
+                        <span>Total TTC</span>
+                        <span class="text-nowrap" style="color:#1e3a5f;">{{ doc.calculer_total_ttc|floatformat:"2g" }} {{ devise }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if doc.notes %}
+            <div class="mt-4 p-3 rounded-3" style="background:#f6f8fb;">
+                <div class="small fw-semibold text-muted mb-1">Notes</div>
+                <div style="white-space: pre-line;">{{ doc.notes }}</div>
+            </div>
+            {% endif %}
+
+            {% if not action_effectuee and not deja_traite %}
+            <form method="post" class="mt-4 pt-4 border-top">
+                {% csrf_token %}
+                <label for="commentaire" class="form-label">Commentaire <span class="text-muted fw-normal">(facultatif — recommandé en cas de rejet)</span></label>
+                <textarea id="commentaire" name="commentaire" class="form-control mb-3" rows="3"
+                          placeholder="Remarques pour l'émetteur..."></textarea>
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                    <button type="submit" name="action" value="rejeter" class="btn btn-outline-danger px-4"
+                            onclick="return confirm('Rejeter ce document ?')">
+                        <i class="bi bi-x-circle me-2"></i>Rejeter
+                    </button>
+                    <button type="submit" name="action" value="approuver" class="btn btn-success px-4"
+                            onclick="return confirm('Approuver ce document ?')">
+                        <i class="bi bi-check-circle me-2"></i>Approuver {% if feminin %}la{% else %}le{% endif %} {{ type_doc }}
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="card-footer text-center text-muted small py-3">
+            <i class="bi bi-shield-lock me-1"></i>Lien d'approbation réservé à votre équipe — ne le transmettez pas au client.
+        </div>
+    </div>
+</div>
+{% endwith %}

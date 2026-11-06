@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Tableau de bord{% endblock %}
+{% block auto_refresh %}1{% endblock %}
 {% block page_title %}Tableau de bord{% endblock %}
 
 {% block content %}
@@ -201,19 +202,7 @@
                                     {{ d.client.devise|default:"FCFA" }}
                                 </td>
                                 <td data-label="Statut">
-                                    {% if d.statut == 'en_attente' %}
-                                        <span class="badge"
-                                              style="background-color: #344e65; color: white;">
-                                            En attente
-                                        </span>
-                                    {% elif d.statut == 'accepte' %}
-                                        <span class="badge"
-                                              style="background-color: #2d6a9f; color: white;">
-                                            Accepté
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Refusé</span>
-                                    {% endif %}
+                                    {% include 'partials/badge_devis.html' with doc=d %}
                                 </td>
                             </tr>
                             {% empty %}
@@ -270,16 +259,7 @@
                                     {{ f.client.devise|default:"FCFA" }}
                                 </td>
                                 <td data-label="Statut">
-                                    {% if f.statut == 'non_payee' %}
-                                        <span class="badge bg-danger">Non payée</span>
-                                    {% elif f.statut == 'payee' %}
-                                        <span class="badge"
-                                              style="background-color: #2d6a9f; color: white;">
-                                            Payée
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Annulée</span>
-                                    {% endif %}
+                                    {% include 'partials/badge_facture.html' with doc=f %}
                                 </td>
                             </tr>
                             {% empty %}
@@ -355,7 +335,7 @@ new Chart(document.getElementById('graphDevisStatut'), {
         labels: devisStatutsLabels,
         datasets: [{
             data: devisStatutsData,
-            backgroundColor: ['#344e65', '#2d6a9f', '#1e3a5f'],
+            backgroundColor: ['#f5b942', '#2d6a9f', '#e8590c', '#2f9e44', '#c92a2a', '#adb5bd'],
             borderWidth: 2, borderColor: '#fff',
         }]
     },
@@ -402,7 +382,7 @@ new Chart(document.getElementById('graphFacturesStatut'), {
         labels: facturesStatutsLabels,
         datasets: [{
             data: facturesStatutsData,
-            backgroundColor: ['#1e3a5f', '#2d6a9f', '#344e65'],
+            backgroundColor: ['#f5b942', '#2d6a9f', '#c92a2a', '#e8590c', '#2f9e44', '#adb5bd'],
             borderWidth: 2, borderColor: '#fff',
         }]
     },

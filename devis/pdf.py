@@ -142,7 +142,6 @@ def generer_pdf_devis(devis):
 
     # ── Statut avec couleurs
     statut_map = {
-        'approuve_superieur': ('APPROUVÉ', VERT),
         'accepte': ('ACCEPTÉ', VERT),
         'refuse': ('REFUSÉ', ROUGE),
     }
@@ -415,7 +414,7 @@ def generer_pdf_devis(devis):
     # ══════════════════════════════════════════
     # CACHET D'APPROBATION
     # ══════════════════════════════════════════
-    STATUTS_AVEC_CACHET = ['accepte', 'refuse', 'approuve_superieur']
+    STATUTS_AVEC_CACHET = ['accepte', 'refuse']
     
     if devis.statut in STATUTS_AVEC_CACHET:
         elements.append(Spacer(1, 0.5*cm))

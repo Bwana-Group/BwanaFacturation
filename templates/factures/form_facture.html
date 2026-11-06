@@ -81,7 +81,9 @@
                         <label class="form-label fw-semibold" style="color: #1e3a5f;">
                             <i class="bi bi-tag me-1"></i>Statut
                         </label>
-                        {{ form.statut }}
+                        <input type="text" class="form-control" readonly
+                               value="{% if facture %}{{ facture.get_statut_display }}{% else %}En attente d'approbation{% endif %}">
+                        <div class="form-text">Mis à jour par le circuit d'approbation.</div>
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold" style="color: #1e3a5f;">
@@ -766,7 +768,10 @@ function chargerInfosClient(clientId, callback) {
             const clientInfo = document.getElementById('client-info');
             if (clientInfo) clientInfo.classList.remove('d-none');
             const deviseBadge = document.getElementById('client-devise-badge');
-            if (deviseBadge) deviseBadge.textContent = `💱 ${deviseClient}`;
+            if (deviseBadge) {
+                deviseBadge.innerHTML = '<i class="bi bi-currency-exchange me-1"></i>';
+                deviseBadge.append(deviseClient);
+            }
             const paysBadge = document.getElementById('client-pays-badge');
             if (paysBadge) paysBadge.textContent = data.pays_nom || '';
             
@@ -968,13 +973,30 @@ document.addEventListener('click', function(e) {
     const btn = e.target.closest('.btn-supprimer-ligne');
     if (!btn) return;
     const row = btn.closest('tr');
-    const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-    if (del) { del.checked = true; row.style.display = 'none'; }
-    else { row.remove(); }
-    const totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
-    if (totalForms) totalForms.value = document.querySelectorAll('#lignes-body tr.ligne-row').length;
+    if (document.querySelectorAll('#lignes-body tr.ligne-row').length <= 1) {
+        alert('Le document doit contenir au moins une ligne.');
+        return;
+    }
+    row.remove();
+    renumeroterLignes();
     calculerTotaux();
 });
+
+// Renumérote les champs lignes-N-* pour qu'ils restent continus (0..n-1),
+// sinon Django ignore les lignes au-delà de TOTAL_FORMS.
+function renumeroterLignes() {
+    const rows = document.querySelectorAll('#lignes-body tr.ligne-row');
+    rows.forEach((row, index) => {
+        row.id = `row-${index}`;
+        row.querySelectorAll('[name^="lignes-"], [id^="id_lignes-"], [data-row]').forEach(el => {
+            if (el.name) el.name = el.name.replace(/^lignes-\d+-/, `lignes-${index}-`);
+            if (el.id) el.id = el.id.replace(/^id_lignes-\d+-/, `id_lignes-${index}-`);
+            if (el.dataset.row !== undefined) el.dataset.row = index;
+        });
+    });
+    const totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
+    if (totalForms) totalForms.value = rows.length;
+}
 
 // Ajouter ligne
 const btnAjouter = document.getElementById('btn-ajouter-ligne');

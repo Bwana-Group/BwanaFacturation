@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Q, Prefetch
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
 from .models import Produit, Categorie, Pays, Province, TypeTaxe, TauxTaxe, UniteVente
 from .forms import ProduitForm, CategorieForm
@@ -61,10 +62,10 @@ def ajouter_produit(request):
             produit      = form.save(commit=False)
             produit.user = request.user
             produit.save()
-            messages.success(request, f'✅ Produit "{produit.nom}" ajouté avec succès')
+            messages.success(request, f'Produit "{produit.nom}" ajouté avec succès')
             return redirect('liste_produits')
         else:
-            messages.error(request, '❌ Veuillez corriger les erreurs ci-dessous')
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous')
     else:
         form = ProduitForm(user=request.user)
 
@@ -97,10 +98,10 @@ def modifier_produit(request, pk):
         form = ProduitForm(request.POST, instance=produit, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, f'✏️ Produit "{produit.nom}" modifié avec succès')
+            messages.success(request, f'Produit "{produit.nom}" modifié avec succès')
             return redirect('liste_produits')
         else:
-            messages.error(request, '❌ Veuillez corriger les erreurs ci-dessous')
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous')
     else:
         form = ProduitForm(instance=produit, user=request.user)
 
@@ -126,7 +127,7 @@ def supprimer_produit(request, pk):
     if request.method == 'POST':
         nom_produit = produit.nom
         produit.delete()
-        messages.success(request, f'🗑️ Produit "{nom_produit}" supprimé avec succès')
+        messages.success(request, f'Produit "{nom_produit}" supprimé avec succès')
         return redirect('liste_produits')
 
     return render(request, 'produits/supprimer.html', {
@@ -136,14 +137,25 @@ def supprimer_produit(request, pk):
 
 
 @login_required
+@require_POST
 def dupliquer_produit(request, pk):
     produit_original           = get_object_or_404(Produit, pk=pk, user=request.user)
+
+    # Référence unique par utilisateur : -COPY, -COPY2, -COPY3...
+    base      = f"{produit_original.reference}-COPY"[:50]
+    reference = base
+    n = 2
+    while Produit.objects.filter(user=request.user, reference=reference).exists():
+        suffixe   = str(n)
+        reference = f"{base[:50 - len(suffixe)]}{suffixe}"
+        n += 1
+
     produit_original.pk        = None
-    produit_original.reference = f"{produit_original.reference}-COPY"
+    produit_original.reference = reference
     produit_original.nom       = f"{produit_original.nom} (copie)"
     produit_original.slug      = ""
     produit_original.save()
-    messages.success(request, '📋 Produit dupliqué avec succès')
+    messages.success(request, 'Produit dupliqué avec succès')
     return redirect('modifier_produit', pk=produit_original.pk)
 
 
@@ -193,7 +205,7 @@ def ajouter_categorie(request):
             categorie      = form.save(commit=False)
             categorie.user = request.user
             categorie.save()
-            messages.success(request, f'✅ Catégorie "{categorie.nom}" ajoutée')
+            messages.success(request, f'Catégorie "{categorie.nom}" ajoutée')
             return redirect('liste_categories')
     else:
         form = CategorieForm(user=request.user)
@@ -213,7 +225,7 @@ def modifier_categorie(request, pk):
         form = CategorieForm(request.POST, instance=categorie, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, f'✏️ Catégorie "{categorie.nom}" modifiée')
+            messages.success(request, f'Catégorie "{categorie.nom}" modifiée')
             return redirect('liste_categories')
     else:
         form = CategorieForm(instance=categorie, user=request.user)
@@ -231,13 +243,13 @@ def supprimer_categorie(request, pk):
     categorie = get_object_or_404(Categorie, pk=pk, user=request.user)
 
     if categorie.produits.exists():
-        messages.error(request, '❌ Impossible de supprimer une catégorie qui contient des produits')
+        messages.error(request, 'Impossible de supprimer une catégorie qui contient des produits')
         return redirect('liste_categories')
 
     if request.method == 'POST':
         nom = categorie.nom
         categorie.delete()
-        messages.success(request, f'🗑️ Catégorie "{nom}" supprimée')
+        messages.success(request, f'Catégorie "{nom}" supprimée')
         return redirect('liste_categories')
 
     return render(request, 'produits/categories/supprimer.html', {'categorie': categorie})
@@ -277,7 +289,7 @@ def ajouter_unite_vente(request):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'id': unite.pk, 'nom': unite.nom, 'code': unite.code})
 
-        messages.success(request, f'✅ Unité "{unite.nom}" créée.')
+        messages.success(request, f'Unité "{unite.nom}" créée.')
         return redirect('liste_produits')
 
     return JsonResponse({'erreur': 'Méthode non autorisée.'}, status=405)

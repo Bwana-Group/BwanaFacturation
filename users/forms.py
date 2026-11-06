@@ -38,7 +38,7 @@ class InscriptionForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("Un compte existe déjà avec cet email.")
         return email
 

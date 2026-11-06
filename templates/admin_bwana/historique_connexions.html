@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Historique connexions — Admin{% endblock %}
-{% block page_title %}⚙️ Historique des connexions{% endblock %}
+{% block page_title %}Historique des connexions{% endblock %}
 
 {% block content %}
 <div class="card border-0 shadow-sm">
@@ -42,9 +42,9 @@
                         </td>
                         <td class="text-center">
                             {% if log.succes %}
-                                <span class="badge bg-success">✅ Succès</span>
+                                <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Succès</span>
                             {% else %}
-                                <span class="badge bg-danger">❌ Échec</span>
+                                <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Échec</span>
                             {% endif %}
                         </td>
                     </tr>

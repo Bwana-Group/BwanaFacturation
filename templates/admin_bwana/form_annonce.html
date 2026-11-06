@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}{{ titre }} — Admin{% endblock %}
-{% block page_title %}⚙️ {{ titre }}{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -25,10 +25,10 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Type</label>
                         <select name="type_annonce" class="form-select">
-                            <option value="info">ℹ️ Information</option>
-                            <option value="warning">⚠️ Avertissement</option>
-                            <option value="success">✅ Succès</option>
-                            <option value="danger">🚨 Urgent</option>
+                            <option value="info">Information</option>
+                            <option value="warning">Avertissement</option>
+                            <option value="success">Succès</option>
+                            <option value="danger">Urgent</option>
                         </select>
                     </div>
 

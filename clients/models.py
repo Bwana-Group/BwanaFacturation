@@ -3,8 +3,15 @@ from django.db import models
 from django.contrib.auth.models import User
 from taxes.models import Pays
 import logging
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+
+def normaliser_texte(texte):
+    """Minuscules, sans accents ni espaces superflus — pour comparer des saisies libres."""
+    texte = unicodedata.normalize('NFKD', (texte or '').strip().lower())
+    return ''.join(c for c in texte if not unicodedata.combining(c))
 
 
 class Client(models.Model):
@@ -147,7 +154,7 @@ class Client(models.Model):
     @property
     def taux_tva(self):
         """
-        ✅ CORRECTION : Calcule le taux total uniquement pour la province du client
+        CORRECTION : Calcule le taux total uniquement pour la province du client
         """
         if self.pays_obj:
             taxes = self.taxes_disponibles
@@ -160,7 +167,7 @@ class Client(models.Model):
     @property
     def type_taxe_nom(self):
         """
-        ✅ CORRECTION : Retourne uniquement les taxes de la province du client
+        CORRECTION : Retourne uniquement les taxes de la province du client
         """
         if self.pays_obj:
             taxes = self.taxes_disponibles
@@ -183,29 +190,24 @@ class Client(models.Model):
     @property
     def taxes_disponibles(self):
         """
-        ✅ CORRECTION : Retourne les taxes disponibles selon la province du client
+        CORRECTION : Retourne les taxes disponibles selon la province du client
         """
+        from taxes.models import Taxe
+
         if not self.pays_obj:
-            logger.debug(f"taxes_disponibles: {self.nom} - pas de pays")
-            return []
-        
-        # Log pour diagnostic
-        logger.info(f"taxes_disponibles pour {self.nom}:")
-        logger.info(f"  - Pays: {self.pays_obj.nom} ({self.pays_obj.code})")
-        logger.info(f"  - Province: '{self.province}'")
-        
-        # ✅ Filtrer STRICTEMENT par province
-        if self.province and self.province.strip():
-            # Si le client a une province, prendre uniquement les taxes de cette province
-            taxes = self.pays_obj.taxes.filter(actif=True, province=self.province).order_by('ordre')
-            logger.info(f"  - Taxes trouvées: {taxes.count()}")
-            for t in taxes:
-                logger.info(f"    - {t.code}: {t.taux}%")
-            return taxes
-        else:
-            # Si pas de province, ne retourner AUCUNE taxe (pas de taxes par défaut)
-            logger.warning(f"  - Client sans province -> aucune taxe")
-            return self.pays_obj.taxes.none()
+            return Taxe.objects.none()
+
+        # Taxes nationales (sans province) + taxes de la province du client.
+        # La province est saisie librement : comparaison sans accents ni casse
+        # (« Quebec » = « Québec »).
+        province_client = normaliser_texte(self.province)
+        ids = [
+            taxe.id
+            for taxe in self.pays_obj.taxes.filter(actif=True)
+            if not (taxe.province or '').strip()
+            or normaliser_texte(taxe.province) == province_client
+        ]
+        return Taxe.objects.filter(id__in=ids).order_by('ordre')
 
     class Meta:
         ordering = ['-date_creation']

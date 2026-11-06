@@ -228,9 +228,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (paysBadge && paysBadgeText) {
             paysBadge.style.display = 'block';
             if (pays.tva > 0) {
-                paysBadgeText.textContent = `💱 Devise : ${pays.devise}  |  📊 ${pays.type_taxe} : ${pays.tva}%  — utilisés dans les devis/factures`;
+                paysBadgeText.innerHTML = '<i class="bi bi-currency-exchange me-1"></i>';
+                paysBadgeText.append(`Devise : ${pays.devise}`);
+                paysBadgeText.insertAdjacentHTML('beforeend', '<span class="mx-2">|</span><i class="bi bi-percent me-1"></i>');
+                paysBadgeText.append(`${pays.type_taxe} : ${pays.tva}%  — utilisés dans les devis/factures`);
             } else {
-                paysBadgeText.textContent = `💱 Devise : ${pays.devise} — utilisée dans les devis/factures`;
+                paysBadgeText.innerHTML = '<i class="bi bi-currency-exchange me-1"></i>';
+                paysBadgeText.append(`Devise : ${pays.devise} — utilisée dans les devis/factures`);
             }
         }
     }

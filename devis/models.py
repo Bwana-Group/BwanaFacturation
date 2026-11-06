@@ -10,10 +10,11 @@ from decimal import Decimal
 class Devis(models.Model):
     STATUT_CHOICES = [
         ('en_attente', 'En attente'),
-        ('approuve_superieur', 'Approuvé par supérieur'),
+        ('approuve_superieur', 'En attente du client'),
         ('rejete_superieur', 'Rejeté par supérieur'),
         ('accepte', 'Accepté'),
         ('refuse', 'Refusé'),
+        ('expire', 'Expiré'),
     ]
 
     # ── Champs existants ──
@@ -295,6 +296,11 @@ class Devis(models.Model):
     def est_approuve(self):
         """Vérifie si le devis a été approuvé par le supérieur"""
         return self.statut == 'approuve_superieur'
+
+    @property
+    def envoi_direct(self):
+        """Le devis est parti chez le client sans passer par un supérieur."""
+        return self.approuve_par_id is not None and self.approuve_par_id == self.utilisateur_id
     
     @property
     def est_rejete(self):

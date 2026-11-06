@@ -113,6 +113,13 @@ DATABASES = {
     }
 }
 
+# Développement local sans PostgreSQL : USE_SQLITE=True dans le .env
+if os.environ.get('USE_SQLITE', 'False') == 'True':
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME':   BASE_DIR / 'db.sqlite3',
+    }
+
 # ══════════════════════════════════════════
 # MOT DE PASSE
 # ══════════════════════════════════════════
@@ -147,7 +154,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # AUTHENTIFICATION
 # ══════════════════════════════════════════
 LOGIN_URL = '/BwanaFacturation/users/connexion/'
-LOGIN_REDIRECT_URL = '/BwanaFacturation/devis/'
+LOGIN_REDIRECT_URL = '/BwanaFacturation/devis/tableau-de-bord/'
 LOGOUT_REDIRECT_URL = '/BwanaFacturation/users/connexion/'
 
 # ══════════════════════════════════════════
@@ -183,12 +190,15 @@ DEFAULT_FROM_EMAIL = os.environ.get('EMAIL_HOST_USER', 'noreply@bwanafacturation
 # EMAIL DÉDIÉ AUX FACTURES ET DEVIS (2ème compte)
 # ══════════════════════════════════════════
 FACTURE_EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-FACTURE_EMAIL_HOST = os.environ.get('FACTURE_EMAIL_HOST', 'smtp.gmail.com')
-FACTURE_EMAIL_PORT = int(os.environ.get('FACTURE_EMAIL_PORT', 587))
+# Sans compte dédié (FACTURE_*), on utilise le compte principal ci-dessus.
+FACTURE_EMAIL_HOST = os.environ.get('FACTURE_EMAIL_HOST', EMAIL_HOST)
+FACTURE_EMAIL_PORT = int(os.environ.get('FACTURE_EMAIL_PORT', EMAIL_PORT))
 FACTURE_EMAIL_USE_TLS = True
-FACTURE_EMAIL_HOST_USER = os.environ.get('FACTURE_EMAIL_HOST_USER', '')
-FACTURE_EMAIL_HOST_PASSWORD = os.environ.get('FACTURE_EMAIL_HOST_PASSWORD', '')
-FACTURE_DEFAULT_FROM_EMAIL = os.environ.get('FACTURE_DEFAULT_FROM_EMAIL', 'factures@bwanafacturation.com')
+FACTURE_EMAIL_HOST_USER = os.environ.get('FACTURE_EMAIL_HOST_USER') or EMAIL_HOST_USER
+FACTURE_EMAIL_HOST_PASSWORD = os.environ.get('FACTURE_EMAIL_HOST_PASSWORD') or EMAIL_HOST_PASSWORD
+FACTURE_DEFAULT_FROM_EMAIL = (os.environ.get('FACTURE_DEFAULT_FROM_EMAIL')
+                              or FACTURE_EMAIL_HOST_USER
+                              or 'factures@bwanafacturation.com')
 
 # ══════════════════════════════════════════
 # CSRF & SÉCURITÉ

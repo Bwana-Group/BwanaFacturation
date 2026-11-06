@@ -47,7 +47,7 @@
                         <span class="small">{{ client.pays_obj.nom|default:"Non renseigné" }}</span>
                         {% if client.devise %}
                             <span class="badge ms-2" style="background: #e8f0fe; color: #1e3a5f;">
-                                💱 {{ client.devise }}
+                                <i class="bi bi-currency-exchange me-1"></i>{{ client.devise }}
                             </span>
                         {% endif %}
                     </div>
@@ -115,13 +115,7 @@
                                     {{ d.calculer_total_ttc|floatformat:0 }} {{ client.devise|default:"FCFA" }}
                                 </td>
                                 <td data-label="Statut">
-                                    {% if d.statut == 'en_attente' %}
-                                        <span class="badge" style="background: #344e65; color: white;">En attente</span>
-                                    {% elif d.statut == 'accepte' %}
-                                        <span class="badge" style="background: #2d6a9f; color: white;">Accepté</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Refusé</span>
-                                    {% endif %}
+                                    {% include 'partials/badge_devis.html' with doc=d %}
                                 </td>
                                 <td data-label="Action" class="text-center">
                                     <a href="{% url 'detail_devis' d.pk %}"
@@ -188,13 +182,7 @@
                                     {{ f.calculer_total_ttc|floatformat:0 }} {{ client.devise|default:"FCFA" }}
                                 </td>
                                 <td data-label="Statut">
-                                    {% if f.statut == 'non_payee' %}
-                                        <span class="badge bg-danger">Non payée</span>
-                                    {% elif f.statut == 'payee' %}
-                                        <span class="badge" style="background: #2d6a9f; color: white;">Payée</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Annulée</span>
-                                    {% endif %}
+                                    {% include 'partials/badge_facture.html' with doc=f %}
                                 </td>
                                 <td data-label="Action" class="text-center">
                                     <a href="{% url 'detail_facture' f.pk %}"

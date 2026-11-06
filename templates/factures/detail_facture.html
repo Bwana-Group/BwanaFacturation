@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}Facture {{ facture.numero }}{% endblock %}
+{% block auto_refresh %}1{% endblock %}
 {% block page_title %}Détail de la Facture{% endblock %}
 
 {% block content %}
@@ -137,11 +138,11 @@
                                 <div class="text-muted small">Statut</div>
                                 <div>
                                     {% if facture.statut == 'en_attente' %}
-                                        <span class="badge" style="background: #ffc107; color: #1e3a5f;">⏳ En attente d'approbation</span>
+                                        <span class="badge" style="background: #ffc107; color: #1e3a5f;"><i class="bi bi-hourglass-split me-1"></i>En attente d'approbation</span>
                                     {% elif facture.statut == 'approuvee' %}
-                                        <span class="badge" style="background: #17a2b8; color: white;">✅ Approuvée</span>
+                                        <span class="badge" style="background: #17a2b8; color: white;"><i class="bi bi-check-circle-fill me-1"></i>Approuvée</span>
                                     {% elif facture.statut == 'rejetee' %}
-                                        <span class="badge" style="background: #dc3545; color: white;">❌ Rejetée</span>
+                                        <span class="badge" style="background: #dc3545; color: white;"><i class="bi bi-x-circle-fill me-1"></i>Rejetée</span>
                                     {% elif facture.statut == 'non_payee' %}
                                         <span class="badge" style="background: #dc3545; color: white;">Non payée</span>
                                     {% elif facture.statut == 'payee' %}
@@ -161,7 +162,7 @@
                             </div>
                         </div>
                         
-                        {% if facture.pays or facture.type_taxe or facture.taux_taxe %}
+                        {% if facture.pays or facture.taux_taxe %}
                         <div class="col-12">
                             <div class="p-3 rounded" style="background: #f8f9fa;">
                                 <div class="text-muted small">Configuration fiscale</div>
@@ -171,7 +172,7 @@
                                             <i class="bi bi-globe2 me-1"></i>{{ facture.pays }}
                                         </span>
                                     {% endif %}
-                                    {% if facture.type_taxe %}
+                                    {% if facture.type_taxe and facture.taux_taxe %}
                                         <span class="badge me-1" style="background: #e8f0fe; color: #1e3a5f;">
                                             <i class="bi bi-receipt me-1"></i>{{ facture.type_taxe }}
                                         </span>

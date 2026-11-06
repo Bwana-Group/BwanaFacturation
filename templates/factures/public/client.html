@@ -1,73 +1,7 @@
 {% extends 'base_public.html' %}
-{% load static %}
 
 {% block title %}Facture {{ facture.numero }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-lg">
-                <div class="card-header bg-white border-0 text-center pt-4">
-                    <h3 class="fw-bold" style="color: #1e3a5f;">📄 Facture {{ facture.numero }}</h3>
-                    <p class="text-muted">Bonjour <strong>{{ facture.client.nom }}</strong>,</p>
-                </div>
-                
-                <div class="card-body p-4">
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i>
-                        Cette facture a été approuvée en interne et vous est présentée.
-                    </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Description</th>
-                                    <th class="text-center">Qté</th>
-                                    <th class="text-end">Prix HT</th>
-                                    <th class="text-end">Total TTC</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for ligne in facture.lignes.all %}
-                                <tr>
-                                    <td>{{ ligne.description }}</td>
-                                    <td class="text-center">{{ ligne.quantite }}</td>
-                                    <td class="text-end">{{ ligne.prix_unitaire|floatformat:0 }} {{ facture.client.devise|default:"FCFA" }}</td>
-                                    <td class="text-end">{{ ligne.total_ttc|floatformat:0 }} {{ facture.client.devise|default:"FCFA" }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" class="text-end">Total TTC :</td>
-                                    <td class="text-end fw-bold fs-5">{{ facture.calculer_total_ttc|floatformat:0 }} {{ facture.client.devise|default:"FCFA" }}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="d-flex gap-3 justify-content-center mt-4">
-                            <button type="submit" name="action" value="accepter" class="btn btn-success btn-lg px-4"
-                                    onclick="return confirm('Accepter cette facture ?')">
-                                <i class="bi bi-check-circle me-2"></i>Accepter la facture
-                            </button>
-                            <button type="submit" name="action" value="refuser" class="btn btn-danger btn-lg px-4"
-                                    onclick="return confirm('Refuser cette facture ?')">
-                                <i class="bi bi-x-circle me-2"></i>Refuser la facture
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                
-                <div class="card-footer text-center text-muted small py-3">
-                    <i class="bi bi-shield-lock"></i> Lien sécurisé
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'partials/document_client.html' with doc=facture type_doc='facture' feminin=True date_label='Échéance' date_value=facture.date_echeance pdf_url_name='pdf_facture_public' pdf_token=facture.token_client %}
 {% endblock %}

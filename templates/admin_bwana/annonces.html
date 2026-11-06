@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Annonces — Administration{% endblock %}
-{% block page_title %}⚙️ Annonces système{% endblock %}
+{% block page_title %}Annonces système{% endblock %}
 
 {% block content %}
 
@@ -134,13 +134,13 @@
                          </tr>
                         <td class="text-center py-3">
                             <div class="d-flex gap-1 gap-md-2 justify-content-center">
-                                <a href="{% url 'admin_toggle_annonce' annonce.pk %}"
+                                <a data-post href="{% url 'admin_toggle_annonce' annonce.pk %}"
                                    class="btn btn-sm {% if annonce.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
                                    title="{% if annonce.active %}Désactiver{% else %}Activer{% endif %}"
                                    onclick="return confirm('{% if annonce.active %}Désactiver cette annonce ?{% else %}Activer cette annonce ?{% endif %}')">
                                     <i class="bi bi-{% if annonce.active %}pause-circle{% else %}play-circle{% endif %}"></i>
                                 </a>
-                                <a href="{% url 'admin_supprimer_annonce' annonce.pk %}"
+                                <a data-post href="{% url 'admin_supprimer_annonce' annonce.pk %}"
                                    class="btn btn-sm btn-outline-danger"
                                    onclick="return confirm('Supprimer définitivement cette annonce ?')"
                                    title="Supprimer">

@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:pk>/liens/', views.gestion_liens_facture, name='gestion_liens_facture'),
     path('public/approbation/<str:token>/', views.visualiser_facture_approbation, name='visualiser_facture_approbation'),
     path('public/client/<str:token>/', views.visualiser_facture_client, name='visualiser_facture_client'),
+    path('public/pdf/<str:token>/', views.telecharger_pdf_facture_public, name='pdf_facture_public'),
     # ✅ Envoi par email
     path('<int:pk>/envoyer/', views.envoyer_facture_email, name='envoyer_facture_email'),
 ]

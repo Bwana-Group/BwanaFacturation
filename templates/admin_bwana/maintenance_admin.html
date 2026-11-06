@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Maintenance — Admin{% endblock %}
-{% block page_title %}⚙️ Mode Maintenance{% endblock %}
+{% block page_title %}Mode Maintenance{% endblock %}
 {% block content %}
 
 <div class="row g-4">
@@ -81,7 +81,7 @@
                     <i class="bi bi-eye me-2 text-info"></i>Aperçu utilisateur
                 </h6>
                 <div class="border rounded p-3 text-center bg-light">
-                    <div style="font-size:48px;">🔧</div>
+                    <div style="font-size:48px;"><i class="bi bi-tools text-secondary"></i></div>
                     <h5 class="fw-bold mt-2">Site en maintenance</h5>
                     <p class="text-muted">{{ maintenance.message }}</p>
                     <small class="text-muted">Voilà ce que verront les utilisateurs.</small>

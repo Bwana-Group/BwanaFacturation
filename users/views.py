@@ -7,7 +7,10 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode, url_has_allowed_host_and_scheme
+from django.urls import reverse
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from django.utils.encoding import force_bytes, force_str
 from django.conf import settings
 from .tokens import token_activation
@@ -25,7 +28,7 @@ def inscription(request):
         if not request.POST.get('terms'):
             form = InscriptionForm(request.POST)
             messages.error(request,
-                "❌ Vous devez accepter les conditions d'utilisation "
+                "Vous devez accepter les conditions d'utilisation "
                 "et la politique de confidentialité.")
             return render(request, 'users/inscription.html', {'form': form})
 
@@ -37,7 +40,7 @@ def inscription(request):
 
             uid   = urlsafe_base64_encode(force_bytes(user.pk))
             token = token_activation.make_token(user)
-            activation_url = f"{settings.SITE_URL}/users/activer/{uid}/{token}/"
+            activation_url = request.build_absolute_uri(reverse('activer_compte', args=[uid, token]))
 
             try:
                 html_message = render_to_string(
@@ -45,7 +48,7 @@ def inscription(request):
                     {'user': user, 'activation_url': activation_url}
                 )
                 send_mail(
-                    subject='🧾 Bwana Facturation — Activez votre compte',
+                    subject='Bwana Facturation — Activez votre compte',
                     message=f'Activation : {activation_url}',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
@@ -99,15 +102,31 @@ def connexion(request):
               or request.META.get('REMOTE_ADDR', ''))
         ua = request.META.get('HTTP_USER_AGENT', '')
 
-        try:
-            user     = User.objects.get(email=email)
-            username = user.username
-        except User.DoesNotExist:
-            username = None
-            messages.error(request, "❌ Aucun compte trouvé avec cet email.")
+        # Connexion par email (ou nom d'utilisateur). Plusieurs comptes peuvent
+        # partager un email hérité : on essaie chacun avec le mot de passe saisi.
+        candidats = list(User.objects.filter(email__iexact=email)) if email else []
+        if not candidats:
+            candidats = list(User.objects.filter(username=email)) if email else []
+
+        username = None
+        user = None
+        if not candidats:
+            messages.error(request, "Aucun compte trouvé avec cet email.")
+        else:
+            username = candidats[0].username
+            for candidat in candidats:
+                user = authenticate(request, username=candidat.username, password=password)
+                if user is not None:
+                    username = candidat.username
+                    break
+            # authenticate() renvoie None pour un compte inactif :
+            # le signaler plutôt que d'annoncer un mauvais mot de passe.
+            if user is None:
+                inactif = next((c for c in candidats if not c.is_active and c.check_password(password)), None)
+                if inactif:
+                    user = inactif
 
         if username:
-            user = authenticate(request, username=username, password=password)
             if user is not None:
                 if user.is_active:
                     login(request, user)
@@ -119,12 +138,17 @@ def connexion(request):
                         )
                     except Exception:
                         pass
-                    next_url = request.GET.get('next', 'tableau_de_bord')
-                    messages.success(request, f"✅ Bienvenue {user.first_name or user.username} !")
+                    next_url = request.GET.get('next', '')
+                    if not url_has_allowed_host_and_scheme(
+                        next_url, allowed_hosts={request.get_host()},
+                        require_https=request.is_secure(),
+                    ):
+                        next_url = 'tableau_de_bord'
+                    messages.success(request, f"Bienvenue {user.first_name or user.username} !")
                     return redirect(next_url)
                 else:
                     messages.error(request,
-                        "⚠️ Votre compte n'est pas encore activé. "
+                        "Votre compte n'est pas encore activé. "
                         "Vérifiez votre email de confirmation.")
             else:
                 try:
@@ -137,7 +161,7 @@ def connexion(request):
                         )
                 except Exception:
                     pass
-                messages.error(request, "❌ Mot de passe incorrect.")
+                messages.error(request, "Mot de passe incorrect.")
 
     return render(request, 'users/connexion.html')
 
@@ -156,13 +180,33 @@ def profil(request):
     profil_obj, _ = ProfilUtilisateur.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
-        # ── Infos utilisateur
+        # ── Infos utilisateur — l'email sert d'identifiant de connexion
+        email = request.POST.get('email', '').strip()
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Adresse email invalide.")
+            return redirect('profil')
+        if User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+            messages.error(request, "Cet email est déjà utilisé par un autre compte.")
+            return redirect('profil')
+
+        superieur_email = request.POST.get('superieur_email', '').strip()
+        if superieur_email:
+            try:
+                validate_email(superieur_email)
+            except ValidationError:
+                messages.error(request, "Adresse email du supérieur invalide.")
+                return redirect('profil')
+
         request.user.first_name = request.POST.get('first_name', '').strip()
         request.user.last_name  = request.POST.get('last_name', '').strip()
-        request.user.email      = request.POST.get('email', '').strip()
+        request.user.email      = email
         request.user.save()
 
         # ── Infos entreprise
+        profil_obj.superieur_nom        = request.POST.get('superieur_nom', '').strip()[:150]
+        profil_obj.superieur_email      = superieur_email
         profil_obj.nom_entreprise       = request.POST.get('nom_entreprise', '').strip()
         profil_obj.telephone            = request.POST.get('telephone', '').strip()
         profil_obj.email_entreprise     = request.POST.get('email_entreprise', '').strip()
@@ -191,7 +235,7 @@ def profil(request):
             profil_obj.logo = None
 
         profil_obj.save()
-        messages.success(request, "✅ Profil mis à jour avec succès !")
+        messages.success(request, "Profil mis à jour avec succès !")
         return redirect('profil')
 
     return render(request, 'users/profil.html', {
@@ -210,13 +254,13 @@ def password_reset_request(request):
             user  = User.objects.get(email=email, is_active=True)
             uid   = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            reset_url = f"{settings.SITE_URL}/users/password-reset/{uid}/{token}/"
+            reset_url = request.build_absolute_uri(reverse('password_reset_confirm', args=[uid, token]))
             html_message = render_to_string(
                 'users/emails/reset_password_email.html',
                 {'user': user, 'reset_url': reset_url}
             )
             send_mail(
-                subject='🔑 Bwana Facturation — Réinitialisation mot de passe',
+                subject='Bwana Facturation — Réinitialisation mot de passe',
                 message=f'Reset : {reset_url}',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
@@ -266,8 +310,5 @@ def password_reset_succes(request):
 # ══════════════════════════════════════════
 # PAGES LÉGALES
 # ══════════════════════════════════════════
-def conditions_utilisation(request):
-    return render(request, 'users/conditions_utilisation.html')
-
 def politique_confidentialite(request):
     return render(request, 'users/politique_confidentialite.html')

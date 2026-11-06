@@ -35,7 +35,7 @@ class DevisForm(forms.ModelForm):
 
     class Meta:
         model = Devis
-        fields = ['client', 'date_validite', 'statut', 'notes',
+        fields = ['client', 'date_validite', 'notes',
                   'pays', 'type_taxe', 'taux_taxe', 'taxes', 'devise']
         widgets = {
             'client': forms.Select(attrs={'class': 'form-select'}),
@@ -43,7 +43,6 @@ class DevisForm(forms.ModelForm):
                 'class': 'form-control', 
                 'type': 'date'
             }, format='%Y-%m-%d'),
-            'statut': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'type_taxe': forms.TextInput(attrs={
                 'class': 'form-control',

@@ -36,7 +36,7 @@ class FactureForm(forms.ModelForm):
 
     class Meta:
         model = Facture
-        fields = ['client', 'date_echeance', 'statut', 'notes',
+        fields = ['client', 'date_echeance', 'notes',
                   'pays', 'type_taxe', 'taux_taxe', 'taxes', 'devise']
         widgets = {
             'client': forms.Select(attrs={'class': 'form-select'}),
@@ -44,7 +44,6 @@ class FactureForm(forms.ModelForm):
                 attrs={'class': 'form-control', 'type': 'date'},
                 format='%Y-%m-%d'
             ),
-            'statut': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 3
             }),

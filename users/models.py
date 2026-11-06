@@ -39,6 +39,10 @@ class ProfilUtilisateur(models.Model):
         verbose_name="Conditions de paiement"
     )
 
+    # ── Approbation des devis : à qui envoyer la demande
+    superieur_nom   = models.CharField(max_length=150, blank=True, verbose_name="Nom du supérieur")
+    superieur_email = models.EmailField(blank=True, verbose_name="Email du supérieur")
+
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)
 

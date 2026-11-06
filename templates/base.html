@@ -6,562 +6,163 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Bwana Facturation - Gestion Devis & Factures{% endblock %}</title>
-    
-    <!-- ✅ Favicon - Logo dans l'onglet -->
+
     <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
-    <link rel="shortcut icon" type="image/png" href="{% static 'img/logo.png' %}">
     <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
-    
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body { 
-            background-color: #f8f9fa; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Conteneur principal - prend toute la hauteur */
-        .app-container {
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* ── SIDEBAR ── */
-        .sidebar {
-            width: 250px;
-            min-width: 250px;
-            height: 100vh;
-            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
-            color: white;
-            transition: width 0.3s ease, min-width 0.3s ease;
-            position: relative;
-            flex-shrink: 0;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            overflow-y: auto;
-            overflow-x: hidden;
-            z-index: 1000;
-        }
-
-        /* Sidebar réduite */
-        .sidebar.collapsed {
-            width: 70px;
-            min-width: 70px;
-        }
-
-        /* Scrollbar sidebar */
-        .sidebar::-webkit-scrollbar { width: 4px; }
-        .sidebar::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); }
-        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
-
-        /* ── SIDEBAR MOBILE ── */
-        @media (max-width: 767px) {
-            .sidebar {
-                position: fixed;
-                transform: translateX(-100%);
-                width: 260px !important;
-                min-width: 260px !important;
-                z-index: 1050;
-            }
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
-            
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                top: 0; left: 0;
-                width: 100%; height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 1049;
-                backdrop-filter: blur(2px);
-            }
-            .sidebar-overlay.active {
-                display: block;
-            }
-            
-            .btn-toggle-sidebar {
-                display: none !important;
-            }
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(-100%); }
-            to { transform: translateX(0); }
-        }
-        .sidebar.mobile-open {
-            animation: slideIn 0.3s ease-out;
-        }
-
-        /* Bouton toggle */
-        .btn-toggle-sidebar {
-            position: absolute;
-            top: 18px;
-            right: -14px;
-            width: 28px;
-            height: 28px;
-            background: #344e65;
-            border: 2px solid white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1001;
-            transition: transform 0.3s ease;
-            color: white;
-            font-size: 0.75rem;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .btn-toggle-sidebar:hover {
-            background: #2d6a9f;
-            transform: scale(1.1);
-        }
-        .sidebar.collapsed .btn-toggle-sidebar {
-            transform: rotate(180deg);
-        }
-
-        /* Bouton burger mobile */
-        .btn-burger {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.8rem;
-            color: #1e3a5f;
-            cursor: pointer;
-            padding: 0 5px;
-            margin-right: 8px;
-        }
-        @media (max-width: 767px) {
-            .btn-burger { display: inline-block; }
-        }
-
-        /* Textes et labels sidebar */
-        .sidebar .nav-label,
-        .sidebar .nav-title,
-        .sidebar .brand-text,
-        .sidebar .version-text,
-        .sidebar .credits-text {
-            transition: opacity 0.2s ease, width 0.2s ease;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        .sidebar.collapsed .nav-label,
-        .sidebar.collapsed .nav-title,
-        .sidebar.collapsed .brand-text,
-        .sidebar.collapsed .version-text,
-        .sidebar.collapsed .credits-text {
-            opacity: 0;
-            width: 0;
-            display: none;
-        }
-
-        /* Liens sidebar */
-        .sidebar a {
-            color: rgba(255,255,255,0.85);
-            text-decoration: none;
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-radius: 8px;
-            margin: 3px 6px;
-            transition: all 0.2s;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        .sidebar a:hover,
-        .sidebar a.active {
-            background: #344e65;
-            color: white;
-            transform: translateX(5px);
-        }
-        .sidebar a i {
-            font-size: 1.1rem;
-            flex-shrink: 0;
-            width: 22px;
-            text-align: center;
-        }
-
-        .sidebar .nav-title {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255,255,255,0.45);
-            padding: 12px 15px 4px;
-        }
-
-        /* Lien admin */
-        .sidebar a.nav-admin {
-            color: #ffd966;
-            border: 1px solid rgba(255,217,102,0.2);
-            margin-top: 4px;
-        }
-        .sidebar a.nav-admin:hover,
-        .sidebar a.nav-admin.active {
-            background: rgba(255,217,102,0.15);
-            color: #ffd966;
-        }
-
-        /* Logo et branding */
-        .sidebar-brand {
-            padding: 20px 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.3s;
-        }
-        .sidebar.collapsed .sidebar-brand {
-            justify-content: center;
-            padding: 20px 5px 15px;
-        }
-        .logo-container {
-            width: 45px;
-            height: 45px;
-            background: #ffffff;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.3s ease;
-        }
-        .sidebar.collapsed .logo-container {
-            margin: 0 auto;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: #ffffff;
-        }
-        .brand-text { line-height: 1.2; }
-        .brand-name { font-weight: 700; font-size: 1rem; color: white; letter-spacing: 1px; }
-        .brand-sub { font-size: 0.7rem; color: rgba(255,255,255,0.6); }
-
-        /* Footer sidebar */
-        .sidebar-footer {
-            position: sticky;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 10px 15px;
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.45);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            margin: 0 10px;
-            text-align: center;
-            background: rgba(30, 58, 95, 0.95);
-            backdrop-filter: blur(5px);
-        }
-        .sidebar.collapsed .sidebar-footer {
-            background: transparent;
-            backdrop-filter: none;
-            padding: 10px 5px;
-        }
-        .sidebar.collapsed .credits-text a span { display: none; }
-        .version-text { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 5px; }
-        .credits-text { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.7rem; }
-        .credits-text a { color: rgba(255,255,255,0.6); text-decoration: none; padding: 2px 4px; display: inline-flex; align-items: center; gap: 4px; }
-        .credits-text a:hover { color: #ffd966; transform: translateY(-2px); }
-
-        /* Tooltip sidebar réduite */
-        .sidebar.collapsed a {
-            justify-content: center;
-            padding: 10px;
-            margin: 3px 8px;
-            position: relative;
-        }
-        .sidebar.collapsed a::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            left: 65px;
-            background: #1e3a5f;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            z-index: 999;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        .sidebar.collapsed a:hover::after { opacity: 1; }
-
-        /* ── CONTENU PRINCIPAL ── */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            background-color: #f8f9fa;
-        }
-
-        /* ── HEADER FIXE ── */
-        .main-header {
-            background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-            padding: 12px 24px;
-            position: sticky;
-            top: 0;
-            z-index: 99;
-            flex-shrink: 0;
-        }
-
-        /* ── CONTENU SCROLLABLE ── */
-        .main-body {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 20px;
-        }
-
-        /* ── FOOTER FIXE ── */
-        .main-footer {
-            background: #1e3a5f;
-            color: rgba(255,255,255,0.7);
-            padding: 10px 24px;
-            text-align: center;
-            font-size: 0.8rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0;
-        }
-        .main-footer a {
-            color: #ffd966;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .main-footer a:hover {
-            color: white;
-            text-decoration: underline;
-        }
-
-        /* Bannières */
-        .impersonate-bar {
-            background: #ff6b35;
-            color: white;
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.875rem;
-            font-weight: 500;
-            flex-wrap: wrap;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        .maintenance-bar {
-            background: #dc3545;
-            color: white;
-            padding: 6px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            flex-wrap: wrap;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-
-        /* Cartes */
-        .card {
-            border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-            border-radius: 12px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .card:hover {
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
-        .btn-primary { background: #1e3a5f; border-color: #1e3a5f; }
-        .btn-primary:hover { background: #2d6a9f; border-color: #2d6a9f; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(30, 58, 95, 0.3); }
-        .btn-outline-primary { color: #1e3a5f; border-color: #1e3a5f; }
-        .btn-outline-primary:hover { background: #1e3a5f; border-color: #1e3a5f; color: white; }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #344e65; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #1e3a5f; }
-
-        /* Responsive */
-        @media (max-width: 767px) {
-            .main-header { padding: 10px 12px; }
-            .main-body { padding: 12px; }
-            .main-footer { padding: 8px 12px; font-size: 0.7rem; }
-            .navbar-quick-btns .btn-sm { padding: 0.25rem 0.5rem; }
-            .navbar-quick-btns .btn-sm span { display: none; }
-            .navbar-quick-btns .btn-sm i { font-size: 1.2rem; margin: 0; }
-            .dropdown button span { display: none; }
-        }
-    </style>
+    <link href="{% static 'css/bwana.css' %}" rel="stylesheet">
 </head>
-<body>
+<body class="{% if user.is_authenticated %}app-body{% endif %}"
+      data-auto-refresh="{% if user.is_authenticated %}{% block auto_refresh %}{% endblock %}{% endif %}">
+
+{# Notifications (Django messages) #}
+{% if messages %}
+<div class="toast-stack" id="toastStack">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show bw-message" role="alert">
+        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-success{% elif message.tags == 'danger' %}bi-x-circle-fill text-danger{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill text-warning{% else %}bi-info-circle-fill text-primary{% endif %} me-2"></i>{{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 {% if user.is_authenticated %}
 {% load admin_tags %}
 
-<!-- Overlay mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
 
 <div class="app-container">
 
-    <!-- ══════════════════════════════════ -->
-    <!-- SIDEBAR                            -->
-    <!-- ══════════════════════════════════ -->
-    <div class="sidebar" id="sidebar">
-        <div class="btn-toggle-sidebar" id="btnToggle" onclick="toggleSidebar()">
-            <i class="bi bi-chevron-left" id="toggleIcon"></i>
+    <!-- ═══════════ SIDEBAR ═══════════ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="btn-toggle-sidebar" id="btnToggle" onclick="toggleSidebar()" title="Réduire / agrandir">
+            <i class="bi bi-chevron-left"></i>
         </div>
 
         <div class="sidebar-brand">
             <div class="logo-container">
-                <img src="{% static 'img/logo.png' %}" 
-                     alt="Bwana" 
-                     style="width: 35px; height: 35px; object-fit: contain;"
-                     onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'35\' height=\'35\' viewBox=\'0 0 24 24\' fill=\'%23ffd966\'%3E%3Cpath d=\'M20 8h-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h2v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM4 16V6h12v2h-2v8H4zm16 4H8v-2h2v-8h10v10z\'/%3E%3C/svg%3E'">
+                <img src="{% static 'img/logo.png' %}" alt="Bwana">
             </div>
             <div class="brand-text">
-                <div class="brand-name">B W A N A</div>
+                <div class="brand-name">BWANA</div>
                 <div class="brand-sub">Facturation</div>
             </div>
         </div>
 
-        <hr style="border-color:rgba(255,255,255,0.15);margin:0 10px 5px;">
+        {% with url_name=request.resolver_match.url_name|default:'' %}
+        <nav class="sidebar-scroll">
+            <div class="nav-title">Principal</div>
+            <a href="{% url 'tableau_de_bord' %}" data-tooltip="Tableau de bord"
+               class="nav-link-item {% if url_name == 'tableau_de_bord' %}active{% endif %}">
+                <i class="bi bi-grid-1x2"></i><span class="nav-label">Tableau de bord</span>
+            </a>
 
-        <div class="nav-title">Principal</div>
-        <a href="{% url 'tableau_de_bord' %}" data-tooltip="Tableau de bord"
-           class="{% if request.resolver_match.url_name == 'tableau_de_bord' %}active{% endif %}">
-            <i class="bi bi-speedometer2"></i><span class="nav-label">Tableau de bord</span>
-        </a>
+            <div class="nav-title">Gestion</div>
+            <a href="{% url 'liste_clients' %}" data-tooltip="Clients"
+               class="nav-link-item {% if 'client' in url_name %}active{% endif %}">
+                <i class="bi bi-people"></i><span class="nav-label">Clients</span>
+            </a>
+            <a href="{% url 'liste_produits' %}" data-tooltip="Produits"
+               class="nav-link-item {% if 'produit' in url_name or 'categorie' in url_name %}active{% endif %}">
+                <i class="bi bi-box-seam"></i><span class="nav-label">Produits</span>
+            </a>
+            <a href="{% url 'liste_devis' %}" data-tooltip="Devis"
+               class="nav-link-item {% if 'devis' in url_name %}active{% endif %}">
+                <i class="bi bi-file-earmark-text"></i><span class="nav-label">Devis</span>
+            </a>
+            <a href="{% url 'liste_factures' %}" data-tooltip="Factures"
+               class="nav-link-item {% if 'facture' in url_name %}active{% endif %}">
+                <i class="bi bi-receipt"></i><span class="nav-label">Factures</span>
+            </a>
 
-        <div class="nav-title">Gestion</div>
-        <a href="{% url 'liste_clients' %}" data-tooltip="Clients"
-           class="{% if 'client' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-people"></i><span class="nav-label">Clients</span>
-        </a>
-        <a href="{% url 'liste_produits' %}" data-tooltip="Produits"
-           class="{% if 'produit' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-box-seam"></i><span class="nav-label">Produits</span>
-        </a>
-        <a href="{% url 'liste_devis' %}" data-tooltip="Devis"
-           class="{% if 'devis' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-file-text"></i><span class="nav-label">Devis</span>
-        </a>
-        <a href="{% url 'liste_factures' %}" data-tooltip="Factures"
-           class="{% if 'facture' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-receipt"></i><span class="nav-label">Factures</span>
-        </a>
+            <div class="nav-sep"></div>
 
-        <hr style="border-color:rgba(255,255,255,0.15);margin:8px 10px;">
-
-        <a href="{% url 'profil' %}" data-tooltip="Mon profil"
-           class="{% if request.resolver_match.url_name == 'profil' %}active{% endif %}">
-            <i class="bi bi-person-circle"></i><span class="nav-label">Mon profil</span>
-        </a>
-
-        {% if user.is_superuser %}
-        <a href="{% url 'admin_dashboard' %}" data-tooltip="Administration"
-           class="nav-admin {% if 'admin_' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="bi bi-shield-lock"></i><span class="nav-label">Administration</span>
-        </a>
-        {% endif %}
-
-        <a href="{% url 'deconnexion' %}" data-tooltip="Déconnexion">
-            <i class="bi bi-box-arrow-right"></i><span class="nav-label">Déconnexion</span>
-        </a>
+            <a href="{% url 'profil' %}" data-tooltip="Mon profil"
+               class="nav-link-item {% if url_name == 'profil' %}active{% endif %}">
+                <i class="bi bi-person-circle"></i><span class="nav-label">Mon profil</span>
+            </a>
+            {% if user.is_superuser %}
+            <a href="{% url 'admin_dashboard' %}" data-tooltip="Administration"
+               class="nav-link-item nav-admin {% if 'admin_' in url_name %}active{% endif %}">
+                <i class="bi bi-shield-lock"></i><span class="nav-label">Administration</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'deconnexion' %}" data-tooltip="Déconnexion" class="nav-link-item">
+                <i class="bi bi-box-arrow-right"></i><span class="nav-label">Déconnexion</span>
+            </a>
+        </nav>
+        {% endwith %}
 
         <div class="sidebar-footer">
-            <div class="version-text"><i class="bi bi-tag me-1"></i>v2.1.0</div>
-            <div class="credits-text">
-                <i class="bi bi-code-slash"></i>
-                <a href="https://bwanatech.com/" target="_blank" rel="noopener noreferrer">
-                    <span>Design by BwanaTech</span>
-                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
-                </a>
-            </div>
+            <i class="bi bi-tag"></i><span class="footer-text"> v2.2.0 ·
+                <a href="https://bwanatech.com/" target="_blank" rel="noopener noreferrer">BwanaTech</a></span>
         </div>
-    </div>
+    </aside>
 
-    <!-- ══════════════════════════════════ -->
-    <!-- CONTENU PRINCIPAL                  -->
-    <!-- ══════════════════════════════════ -->
+    <!-- ═══════════ CONTENU ═══════════ -->
     <div class="main-content">
 
-        {# Bannière impersonation #}
         {% if request.session.admin_id %}
         <div class="impersonate-bar">
             <span><i class="bi bi-person-badge me-2"></i>Mode impersonation — connecté en tant que <strong>{{ user.get_full_name|default:user.username }}</strong></span>
-            <a href="{% url 'admin_stop_impersonate' %}" class="btn btn-sm btn-light text-danger fw-bold">
+            <a href="{% url 'admin_stop_impersonate' %}" class="btn btn-sm btn-light fw-semibold">
                 <i class="bi bi-arrow-return-left me-1"></i>Revenir à mon compte
             </a>
         </div>
         {% endif %}
 
-        {# Bannière maintenance #}
         {% if user.is_superuser %}
         {% get_maintenance as maintenance_status %}
         {% if maintenance_status.actif %}
         <div class="maintenance-bar">
-            <span><i class="bi bi-tools me-2"></i>Mode maintenance <strong>ACTIF</strong> — site inaccessible aux utilisateurs</span>
+            <span><i class="bi bi-tools me-2"></i>Mode maintenance <strong>actif</strong> — site inaccessible aux utilisateurs</span>
             <a href="{% url 'admin_maintenance' %}" class="btn btn-sm btn-outline-light">Gérer</a>
         </div>
         {% endif %}
         {% endif %}
 
-        {# Annonces système #}
         {% get_annonces as annonces_actives %}
         {% for annonce in annonces_actives %}
-        <div class="alert alert-{{ annonce.type_annonce }} alert-dismissible fade show mb-0 border-0 rounded-0" role="alert">
-            <i class="bi bi-megaphone me-2"></i>
-            <strong>{{ annonce.titre }}</strong> — {{ annonce.message }}
+        <div class="alert alert-{{ annonce.type_annonce }} alert-dismissible fade show mb-0 border-0 rounded-0 px-4" role="alert">
+            <i class="bi bi-megaphone me-2"></i><strong>{{ annonce.titre }}</strong> — {{ annonce.message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
 
-        <!-- HEADER FIXE -->
-        <div class="main-header">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn-burger" id="btnBurger" onclick="openMobileSidebar()">
+        <header class="main-header">
+            <div class="d-flex align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-2 min-w-0">
+                    <button class="btn-burger" id="btnBurger" onclick="openMobileSidebar()" aria-label="Menu">
                         <i class="bi bi-list"></i>
                     </button>
-                    <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-grid me-2" style="color:#1e3a5f;"></i>
-                        {% block page_title %}{% endblock %}
-                    </h5>
+                    <h1 class="page-title text-truncate">{% block page_title %}{% endblock %}</h1>
                 </div>
-                <div class="d-flex align-items-center gap-2 navbar-quick-btns">
-                    <a href="{% url 'ajouter_client' %}" class="btn btn-sm btn-outline-primary" title="Ajouter un client">
-                        <i class="bi bi-person-plus"></i><span class="d-none d-sm-inline ms-1">Client</span>
+                <div class="d-flex align-items-center gap-2 quick-actions">
+                    <a href="{% url 'ajouter_client' %}" class="btn btn-sm btn-outline-primary" title="Nouveau client">
+                        <i class="bi bi-person-plus"></i><span>Client</span>
                     </a>
-                    <a href="{% url 'ajouter_devis' %}" class="btn btn-sm btn-outline-warning" title="Ajouter un devis">
-                        <i class="bi bi-file-plus"></i><span class="d-none d-sm-inline ms-1">Devis</span>
+                    <a href="{% url 'ajouter_devis' %}" class="btn btn-sm btn-outline-primary" title="Nouveau devis">
+                        <i class="bi bi-file-earmark-plus"></i><span>Devis</span>
                     </a>
-                    <a href="{% url 'ajouter_facture' %}" class="btn btn-sm btn-outline-success" title="Ajouter une facture">
-                        <i class="bi bi-receipt"></i><span class="d-none d-sm-inline ms-1">Facture</span>
+                    <a href="{% url 'ajouter_facture' %}" class="btn btn-sm btn-primary" title="Nouvelle facture">
+                        <i class="bi bi-plus-lg"></i><span>Facture</span>
                     </a>
-                    <div class="dropdown">
-                        <button class="btn btn-link text-dark text-decoration-none dropdown-toggle p-0" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle fs-5"></i>
-                            <span class="d-none d-md-inline ms-1">{{ user.get_full_name|default:user.username }}</span>
+                    <div class="dropdown ms-1">
+                        <button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="user-avatar">{{ user.first_name|first|default:user.username|first }}{{ user.last_name|first }}</span>
+                            <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
+                            <li class="px-3 py-2 small text-muted">{{ user.email }}</li>
                             <li><a class="dropdown-item" href="{% url 'profil' %}"><i class="bi bi-person me-2"></i>Mon profil</a></li>
                             {% if user.is_superuser %}
-                            <li><a class="dropdown-item text-warning" href="{% url 'admin_dashboard' %}"><i class="bi bi-shield-lock me-2"></i>Administration</a></li>
+                            <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}"><i class="bi bi-shield-lock me-2"></i>Administration</a></li>
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{% url 'deconnexion' %}"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
@@ -569,96 +170,118 @@
                     </div>
                 </div>
             </div>
+        </header>
 
-            <!-- Messages -->
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm mt-2 mb-0" role="alert">
-                        <i class="bi bi-info-circle me-2"></i>{{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        </div>
-
-        <!-- CONTENU SCROLLABLE -->
-        <div class="main-body">
+        <main class="main-body">
             {% block content %}{% endblock %}
-        </div>
+        </main>
 
-        <!-- FOOTER FIXE -->
-        <div class="main-footer">
-            <i class="bi bi-c-circle"></i> {% now "Y" %} 
-            <a href="https://bwanatech.com/" target="_blank" rel="noopener noreferrer">Bwana Tech</a> - Tous droits réservés             <div class="version-text"><i class="bi bi-tag me-1"></i>v2.1.0</div>
-
-        </div>
+        <footer class="main-footer">
+            <span>© {% now "Y" %} <a href="https://bwanatech.com/" target="_blank" rel="noopener noreferrer">Bwana Tech</a> — Tous droits réservés</span>
+            <span><a href="{% url 'confidentialite' %}">Confidentialité</a></span>
+        </footer>
     </div>
 </div>
 
 {% else %}
     <div class="d-flex flex-column" style="min-height: 100vh;">
         {% block content_auth %}{% endblock %}
-        <div class="main-footer mt-auto">
-            <i class="bi bi-c-circle"></i> {% now "Y" %} 
-            <a href="https://bwanatech.com/" target="_blank" rel="noopener noreferrer">Bwana Tech</a> - Tous droits réservés
-        </div>
+        <footer class="main-footer mt-auto justify-content-center">
+            <span>© {% now "Y" %} <a href="https://bwanatech.com/" target="_blank" rel="noopener noreferrer">Bwana Tech</a> — Tous droits réservés</span>
+        </footer>
     </div>
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    const CSRF_TOKEN = '{{ csrf_token }}';
+
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const toggleIcon = document.getElementById('toggleIcon');
-        
         sidebar.classList.toggle('collapsed');
-        
-        if (sidebar.classList.contains('collapsed')) {
-            toggleIcon.classList.remove('bi-chevron-left');
-            toggleIcon.classList.add('bi-chevron-right');
-        } else {
-            toggleIcon.classList.remove('bi-chevron-right');
-            toggleIcon.classList.add('bi-chevron-left');
-        }
-        
-        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed') ? '1' : '0');
+        try { localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
     }
 
     function openMobileSidebar() {
         document.getElementById('sidebar').classList.add('mobile-open');
         document.getElementById('sidebarOverlay').classList.add('active');
-        document.body.style.overflow = 'hidden';
     }
 
     function closeMobileSidebar() {
         document.getElementById('sidebar').classList.remove('mobile-open');
         document.getElementById('sidebarOverlay').classList.remove('active');
-        document.body.style.overflow = '';
     }
 
     document.querySelectorAll('.sidebar a').forEach(link => {
-        link.addEventListener('click', function() {
-            if (window.innerWidth < 768) closeMobileSidebar();
-        });
+        link.addEventListener('click', () => { if (window.innerWidth < 768) closeMobileSidebar(); });
     });
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const collapsed = localStorage.getItem('sidebarCollapsed');
-        const sidebar = document.getElementById('sidebar');
-        const toggleIcon = document.getElementById('toggleIcon');
-        
-        if (collapsed === '1' && window.innerWidth >= 768) {
-            sidebar.classList.add('collapsed');
-            toggleIcon.classList.remove('bi-chevron-left');
-            toggleIcon.classList.add('bi-chevron-right');
+    // Liens d'action (<a data-post>) : envoyés en POST avec le jeton CSRF.
+    // Un onclick="return confirm(...)" annulé empêche l'envoi.
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('a[data-post]');
+        if (!link || e.defaultPrevented) return;
+        e.preventDefault();
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = link.href;
+        form.innerHTML = `<input type="hidden" name="csrfmiddlewaretoken" value="${CSRF_TOKEN}">`;
+        document.body.appendChild(form);
+        form.submit();
+    });
+
+    // Rafraîchissement automatique quand un supérieur ou un client répond via son lien.
+    // Actif seulement sur les pages qui définissent {% verbatim %}{% block auto_refresh %}1{% endblock %}{% endverbatim %}.
+    (function () {
+        if (document.body.dataset.autoRefresh !== '1') return;
+        const URL_ETAT = "{% url 'api_etat_documents' %}";
+        const INTERVALLE = 10000;              // 10 s
+        const INACTIVITE_MAX = 55 * 60 * 1000; // au-delà, on laisse la session expirer
+        let derniereActivite = Date.now();
+        let rechargementEnAttente = false;
+        ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt =>
+            document.addEventListener(evt, () => { derniereActivite = Date.now(); }, { passive: true }));
+
+        // Ne pas recharger pendant une saisie ou avec une fenêtre ouverte (ex. envoi par email)
+        function occupe() {
+            if (document.querySelector('.modal.show')) return true;
+            const el = document.activeElement;
+            return !!el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) && el.value !== '';
         }
-        
+
+        function recharger() {
+            if (occupe()) { rechargementEnAttente = true; return; }
+            window.location.reload();
+        }
+
+        async function verifier() {
+            if (document.hidden || Date.now() - derniereActivite > INACTIVITE_MAX) return;
+            if (rechargementEnAttente) { recharger(); return; }
+            try {
+                const resp = await fetch(URL_ETAT, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                if (!resp.ok || !(resp.headers.get('content-type') || '').includes('json')) return;
+                const data = await resp.json();
+                if (data.changement) recharger();
+            } catch (e) { /* hors ligne : on réessaiera */ }
+        }
+
+        verifier();   // mémorise l'état actuel
+        setInterval(verifier, INTERVALLE);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) verifier(); });
+    })();
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('sidebar');
+        let collapsed = null;
+        try { collapsed = localStorage.getItem('sidebarCollapsed'); } catch (e) {}
+        if (sidebar && collapsed === '1' && window.innerWidth >= 768) sidebar.classList.add('collapsed');
+
         document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-        
-        setTimeout(function() {
-            document.querySelectorAll('.alert').forEach(alert => {
-                try { new bootstrap.Alert(alert).close(); } catch(e) {}
+
+        // Seules les notifications disparaissent seules — pas les encadrés des pages.
+        setTimeout(function () {
+            document.querySelectorAll('.bw-message').forEach(alert => {
+                try { bootstrap.Alert.getOrCreateInstance(alert).close(); } catch (e) {}
             });
         }, 5000);
     });

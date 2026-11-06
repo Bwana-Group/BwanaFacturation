@@ -14,6 +14,7 @@
 <input type="hidden" name="type_taxe" id="id_type_taxe" value="{{ form.type_taxe.value|default:'' }}">
 <input type="hidden" name="taux_taxe" id="id_taux_taxe" value="{{ form.taux_taxe.value|default:'0' }}">
 <input type="hidden" name="taxes_personnalisees" id="id_taxes_personnalisees" value="">
+<input type="hidden" name="envoi" id="id_envoi" value="">
 
 <div class="row g-4">
     <div class="col-12 col-lg-8">
@@ -81,7 +82,9 @@
                         <label class="form-label fw-semibold" style="color: #1e3a5f;">
                             <i class="bi bi-tag me-1"></i>Statut
                         </label>
-                        {{ form.statut }}
+                        <input type="text" class="form-control" readonly
+                               value="{% if devis %}{{ devis.get_statut_display }}{% else %}En attente{% endif %}">
+                        <div class="form-text">Mis à jour par le circuit d'approbation.</div>
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold" style="color: #1e3a5f;">
@@ -315,6 +318,128 @@
     </div>
 </div>
 </form>
+
+{% if not devis %}
+{# ── Fenêtre affichée à la création : que faire du devis ? ── #}
+{% with superieur_nom=user.profil.superieur_nom superieur_email=user.profil.superieur_email %}
+<div class="modal fade" id="modalEnvoi" tabindex="-1" aria-labelledby="modalEnvoiTitre" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalEnvoiTitre">Que faire de ce devis ?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Le devis est enregistré dans tous les cas. Choisissez à qui l'envoyer par email.</p>
+
+                <button type="button" class="choix-envoi w-100 text-start mb-2" data-envoi="approbation"
+                        {% if not superieur_email %}disabled{% endif %}>
+                    <i class="bi bi-person-check fs-4"></i>
+                    <span>
+                        <span class="d-block fw-semibold">Envoyer pour approbation</span>
+                        {% if superieur_email %}
+                            <span class="d-block small text-muted">À {% if superieur_nom %}{{ superieur_nom }} — {% endif %}{{ superieur_email }}</span>
+                            <span class="d-block small text-muted">Une fois approuvé, il part automatiquement chez le client.</span>
+                        {% else %}
+                            <span class="d-block small text-muted">Aucun supérieur renseigné.</span>
+                        {% endif %}
+                    </span>
+                </button>
+                {% if not superieur_email %}
+                <div class="small mb-3 ms-1">
+                    <a href="{% url 'profil' %}#approbation" target="_blank" rel="noopener">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Renseigner mon supérieur dans Mon profil
+                    </a>
+                    <span class="text-muted">(nouvel onglet, puis rechargez cette page)</span>
+                </div>
+                {% endif %}
+
+                <button type="button" class="choix-envoi w-100 text-start" data-envoi="client" id="choixClient">
+                    <i class="bi bi-send fs-4"></i>
+                    <span>
+                        <span class="d-block fw-semibold">Envoyer directement au client</span>
+                        <span class="d-block small text-muted" id="choixClientInfo">Vérification de l'adresse du client…</span>
+                        <span class="d-block small text-muted">Vous validez le devis vous-même, sans approbation.</span>
+                    </span>
+                </button>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-between">
+                <button type="button" class="btn btn-link text-decoration-none px-0" data-envoi="">
+                    Enregistrer sans envoyer
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+
+<style>
+.choix-envoi {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid var(--bw-border, #e4e8ef);
+    border-radius: 12px;
+    color: inherit;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+.choix-envoi i { color: #2d6a9f; }
+.choix-envoi:hover:not(:disabled) { border-color: #2d6a9f; background: #f6f9fd; }
+.choix-envoi:disabled { opacity: .55; cursor: not-allowed; }
+</style>
+
+<script>
+// Création : avant l'enregistrement, demander s'il faut envoyer le devis
+// au supérieur (approbation), au client, ou à personne.
+// Bootstrap est chargé en fin de page : on attend qu'elle soit prête.
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('formDevis');
+    const champEnvoi = document.getElementById('id_envoi');
+    const modalEl = document.getElementById('modalEnvoi');
+    const modal = new bootstrap.Modal(modalEl);
+    const boutonClient = document.getElementById('choixClient');
+    const infoClient = document.getElementById('choixClientInfo');
+    let choixFait = false;
+
+    async function verifierEmailClient() {
+        const clientId = document.getElementById('id_client')?.value;
+        boutonClient.disabled = true;
+        infoClient.textContent = "Vérification de l'adresse du client…";
+        try {
+            const resp = await fetch(`/BwanaFacturation/clients/api/${clientId}/info/`);
+            const data = await resp.json();
+            if (data.email) {
+                infoClient.textContent = `À ${data.nom} — ${data.email}`;
+                boutonClient.disabled = false;
+            } else {
+                infoClient.textContent = "Ce client n'a pas d'adresse email.";
+            }
+        } catch (e) {
+            infoClient.textContent = "Adresse du client introuvable.";
+        }
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (choixFait) return;
+        e.preventDefault();
+        if (!form.reportValidity()) return;
+        verifierEmailClient();
+        modal.show();
+    });
+
+    modalEl.querySelectorAll('[data-envoi]').forEach(btn => {
+        btn.addEventListener('click', function () {
+            champEnvoi.value = this.dataset.envoi;
+            choixFait = true;
+            modalEl.querySelectorAll('button').forEach(b => b.disabled = true);
+            this.innerHTML += ' <span class="spinner-border spinner-border-sm ms-2" role="status"></span>';
+            form.requestSubmit ? form.requestSubmit() : form.submit();
+        });
+    });
+});
+</script>
+{% endif %}
 
 <script>
 let deviseGlobale  = 'FCFA';
@@ -756,7 +881,10 @@ function chargerInfosClient(clientId, callback) {
             const clientInfo = document.getElementById('client-info');
             if (clientInfo) clientInfo.classList.remove('d-none');
             const deviseBadge = document.getElementById('client-devise-badge');
-            if (deviseBadge) deviseBadge.textContent = `💱 ${deviseClient}`;
+            if (deviseBadge) {
+                deviseBadge.innerHTML = '<i class="bi bi-currency-exchange me-1"></i>';
+                deviseBadge.append(deviseClient);
+            }
             const paysBadge = document.getElementById('client-pays-badge');
             if (paysBadge) paysBadge.textContent = data.pays_nom || '';
             
@@ -958,13 +1086,30 @@ document.addEventListener('click', function(e) {
     const btn = e.target.closest('.btn-supprimer-ligne');
     if (!btn) return;
     const row = btn.closest('tr');
-    const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-    if (del) { del.checked = true; row.style.display = 'none'; }
-    else { row.remove(); }
-    const totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
-    if (totalForms) totalForms.value = document.querySelectorAll('#lignes-body tr.ligne-row').length;
+    if (document.querySelectorAll('#lignes-body tr.ligne-row').length <= 1) {
+        alert('Le document doit contenir au moins une ligne.');
+        return;
+    }
+    row.remove();
+    renumeroterLignes();
     calculerTotaux();
 });
+
+// Renumérote les champs lignes-N-* pour qu'ils restent continus (0..n-1),
+// sinon Django ignore les lignes au-delà de TOTAL_FORMS.
+function renumeroterLignes() {
+    const rows = document.querySelectorAll('#lignes-body tr.ligne-row');
+    rows.forEach((row, index) => {
+        row.id = `row-${index}`;
+        row.querySelectorAll('[name^="lignes-"], [id^="id_lignes-"], [data-row]').forEach(el => {
+            if (el.name) el.name = el.name.replace(/^lignes-\d+-/, `lignes-${index}-`);
+            if (el.id) el.id = el.id.replace(/^id_lignes-\d+-/, `id_lignes-${index}-`);
+            if (el.dataset.row !== undefined) el.dataset.row = index;
+        });
+    });
+    const totalForms = document.querySelector('#id_lignes-TOTAL_FORMS');
+    if (totalForms) totalForms.value = rows.length;
+}
 
 // Ajouter ligne
 const btnAjouter = document.getElementById('btn-ajouter-ligne');

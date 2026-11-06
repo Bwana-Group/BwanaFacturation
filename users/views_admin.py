@@ -10,6 +10,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from functools import wraps
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 from .admin_models import LoginHistory, Annonce, MaintenanceMode, ConfigurationEmail  # ✅ Ajout ConfigurationEmail
 from django.core.mail import get_connection, EmailMessage  # ✅ Pour les tests email
 
@@ -23,7 +25,7 @@ def superadmin_required(view_func):
         if not request.user.is_authenticated:
             return redirect('connexion')
         if not request.user.is_superuser:
-            messages.error(request, "❌ Accès refusé — zone administrateur.")
+            messages.error(request, "Accès refusé — zone administrateur.")
             return redirect('tableau_de_bord')
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -153,15 +155,16 @@ def admin_detail_user(request, pk):
 # ACTIVER / DÉSACTIVER
 # ══════════════════════════════════════════
 @superadmin_required
+@require_POST
 def admin_toggle_user(request, pk):
     user = get_object_or_404(User, pk=pk)
     if user.is_superuser:
-        messages.error(request, "❌ Impossible de désactiver un superadmin.")
+        messages.error(request, "Impossible de désactiver un superadmin.")
         return redirect('admin_liste_users')
     user.is_active = not user.is_active
     user.save()
     statut = "activé" if user.is_active else "désactivé"
-    messages.success(request, f"✅ Compte de {user.get_full_name() or user.username} {statut}.")
+    messages.success(request, f"Compte de {user.get_full_name() or user.username} {statut}.")
     return redirect('admin_detail_user', pk=pk)
 
 
@@ -169,16 +172,17 @@ def admin_toggle_user(request, pk):
 # PROMOUVOIR / RÉTROGRADER SUPERUSER
 # ══════════════════════════════════════════
 @superadmin_required
+@require_POST
 def admin_toggle_superuser(request, pk):
     user = get_object_or_404(User, pk=pk)
     if user == request.user:
-        messages.error(request, "❌ Vous ne pouvez pas modifier votre propre statut.")
+        messages.error(request, "Vous ne pouvez pas modifier votre propre statut.")
         return redirect('admin_detail_user', pk=pk)
     user.is_superuser = not user.is_superuser
     user.is_staff     = user.is_superuser
     user.save()
     statut = "promu administrateur" if user.is_superuser else "rétrogradé utilisateur"
-    messages.success(request, f"✅ {user.get_full_name() or user.username} {statut}.")
+    messages.success(request, f"{user.get_full_name() or user.username} {statut}.")
     return redirect('admin_detail_user', pk=pk)
 
 
@@ -189,15 +193,15 @@ def admin_toggle_superuser(request, pk):
 def admin_supprimer_user(request, pk):
     user = get_object_or_404(User, pk=pk)
     if user.is_superuser:
-        messages.error(request, "❌ Impossible de supprimer un superadmin.")
+        messages.error(request, "Impossible de supprimer un superadmin.")
         return redirect('admin_liste_users')
     if user == request.user:
-        messages.error(request, "❌ Vous ne pouvez pas vous supprimer vous-même.")
+        messages.error(request, "Vous ne pouvez pas vous supprimer vous-même.")
         return redirect('admin_liste_users')
     if request.method == 'POST':
         nom = user.get_full_name() or user.username
         user.delete()
-        messages.success(request, f"🗑️ Utilisateur {nom} supprimé.")
+        messages.success(request, f"Utilisateur {nom} supprimé.")
         return redirect('admin_liste_users')
     return render(request, 'admin_bwana/confirmer_suppression_user.html', {'u': user})
 
@@ -206,11 +210,12 @@ def admin_supprimer_user(request, pk):
 # RÉINITIALISER MOT DE PASSE
 # ══════════════════════════════════════════
 @superadmin_required
+@require_POST
 def admin_reset_password(request, pk):
     user  = get_object_or_404(User, pk=pk)
     uid   = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
-    reset_url = f"{settings.SITE_URL}/users/password-reset/{uid}/{token}/"
+    reset_url = request.build_absolute_uri(reverse('password_reset_confirm', args=[uid, token]))
     try:
         from django.template.loader import render_to_string
         html_message = render_to_string(
@@ -218,16 +223,16 @@ def admin_reset_password(request, pk):
             {'user': user, 'reset_url': reset_url}
         )
         send_mail(
-            subject='🔑 Bwana Facturation — Réinitialisation de votre mot de passe',
+            subject='Bwana Facturation — Réinitialisation de votre mot de passe',
             message=f'Reset : {reset_url}',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             html_message=html_message,
             fail_silently=False,
         )
-        messages.success(request, f"✅ Email de réinitialisation envoyé à {user.email}.")
+        messages.success(request, f"Email de réinitialisation envoyé à {user.email}.")
     except Exception as e:
-        messages.error(request, f"❌ Erreur envoi email : {e}")
+        messages.error(request, f"Erreur envoi email : {e}")
     return redirect('admin_detail_user', pk=pk)
 
 
@@ -235,15 +240,19 @@ def admin_reset_password(request, pk):
 # IMPERSONNER UN UTILISATEUR
 # ══════════════════════════════════════════
 @superadmin_required
+@require_POST
 def admin_impersonate(request, pk):
     from django.contrib.auth import login
     user = get_object_or_404(User, pk=pk)
     if user.is_superuser:
-        messages.error(request, "❌ Impossible d'impersonner un superadmin.")
+        messages.error(request, "Impossible d'impersonner un superadmin.")
         return redirect('admin_liste_users')
-    request.session['admin_id'] = request.user.pk
+    admin_id = request.user.pk
+    # login() vide la session quand l'utilisateur change :
+    # admin_id doit être enregistré APRÈS la connexion.
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-    messages.warning(request, f"⚠️ Mode impersonation — vous êtes connecté en tant que {user.get_full_name() or user.username}.")
+    request.session['admin_id'] = admin_id
+    messages.warning(request, f"Mode impersonation — vous êtes connecté en tant que {user.get_full_name() or user.username}.")
     return redirect('tableau_de_bord')
 
 
@@ -256,7 +265,7 @@ def admin_stop_impersonate(request):
     admin = get_object_or_404(User, pk=admin_id, is_superuser=True)
     del request.session['admin_id']
     login(request, admin, backend='django.contrib.auth.backends.ModelBackend')
-    messages.success(request, "✅ Retour à votre compte administrateur.")
+    messages.success(request, "Retour à votre compte administrateur.")
     return redirect('admin_dashboard')
 
 
@@ -289,18 +298,18 @@ def admin_maintenance(request):
             maintenance.date_debut = timezone.now()
             maintenance.date_fin   = None
             maintenance.save()
-            messages.warning(request, "⚠️ Mode maintenance ACTIVÉ — le site est inaccessible aux utilisateurs.")
+            messages.warning(request, "Mode maintenance ACTIVÉ — le site est inaccessible aux utilisateurs.")
 
         elif action == 'desactiver':
             maintenance.actif    = False
             maintenance.date_fin = timezone.now()
             maintenance.save()
-            messages.success(request, "✅ Mode maintenance désactivé — le site est accessible.")
+            messages.success(request, "Mode maintenance désactivé — le site est accessible.")
 
         elif action == 'message':
             maintenance.message = message
             maintenance.save()
-            messages.success(request, "✅ Message de maintenance mis à jour.")
+            messages.success(request, "Message de maintenance mis à jour.")
 
         return redirect('admin_maintenance')
 
@@ -337,10 +346,10 @@ def admin_ajouter_annonce(request):
                 creee_par=request.user,
                 active=True,
             )
-            messages.success(request, f"✅ Annonce « {titre} » créée.")
+            messages.success(request, f"Annonce « {titre} » créée.")
             return redirect('admin_annonces')
         else:
-            messages.error(request, "❌ Titre et message sont obligatoires.")
+            messages.error(request, "Titre et message sont obligatoires.")
 
     return render(request, 'admin_bwana/form_annonce.html', {
         'titre':  'Nouvelle annonce',
@@ -349,20 +358,22 @@ def admin_ajouter_annonce(request):
 
 
 @superadmin_required
+@require_POST
 def admin_toggle_annonce(request, pk):
     annonce        = get_object_or_404(Annonce, pk=pk)
     annonce.active = not annonce.active
     annonce.save()
     statut = "activée" if annonce.active else "désactivée"
-    messages.success(request, f"✅ Annonce {statut}.")
+    messages.success(request, f"Annonce {statut}.")
     return redirect('admin_annonces')
 
 
 @superadmin_required
+@require_POST
 def admin_supprimer_annonce(request, pk):
     annonce = get_object_or_404(Annonce, pk=pk)
     annonce.delete()
-    messages.success(request, "🗑️ Annonce supprimée.")
+    messages.success(request, "Annonce supprimée.")
     return redirect('admin_annonces')
 
 
@@ -432,7 +443,7 @@ def admin_config_email_modifier(request, pk):
             config.password = nouveau_password
         
         config.save()
-        messages.success(request, f"✅ Configuration '{config.nom}' mise à jour.")
+        messages.success(request, f"Configuration '{config.nom}' mise à jour.")
         return redirect('admin_config_email')
     
     return render(request, 'admin_bwana/config_email_modifier.html', {
@@ -449,7 +460,7 @@ def admin_config_email_tester(request, pk):
         email_test = request.POST.get('email_test')
         
         if not email_test:
-            messages.error(request, "❌ Veuillez saisir une adresse email pour le test.")
+            messages.error(request, "Veuillez saisir une adresse email pour le test.")
             return redirect('admin_config_email')
         
         try:
@@ -477,9 +488,9 @@ def admin_config_email_tester(request, pk):
             config.date_dernier_test = timezone.now()
             config.save()
             
-            messages.success(request, f"✅ Email test envoyé avec succès à {email_test} depuis {config.nom}.")
+            messages.success(request, f"Email test envoyé avec succès à {email_test} depuis {config.nom}.")
         except Exception as e:
-            messages.error(request, f"❌ Erreur lors de l'envoi du test : {str(e)}")
+            messages.error(request, f"Erreur lors de l'envoi du test : {str(e)}")
         
         return redirect('admin_config_email')
     
@@ -487,6 +498,7 @@ def admin_config_email_tester(request, pk):
 
 
 @superadmin_required
+@require_POST
 def admin_config_email_activer(request, pk):
     """Activer/désactiver une configuration"""
     config = get_object_or_404(ConfigurationEmail, pk=pk)
@@ -500,5 +512,5 @@ def admin_config_email_activer(request, pk):
     config.save()
     
     status = "activée" if config.actif else "désactivée"
-    messages.success(request, f"✅ Configuration '{config.nom}' {status}.")
+    messages.success(request, f"Configuration '{config.nom}' {status}.")
     return redirect('admin_config_email')
