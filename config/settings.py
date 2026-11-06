@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from django.contrib.messages import constants as messages
+from django.core.exceptions import ImproperlyConfigured
 
 # Charger le fichier .env
 load_dotenv()
@@ -12,15 +13,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ══════════════════════════════════════════
 # SÉCURITÉ
 # ══════════════════════════════════════════
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-ij+$)-5x_aq7_jjjtvur-%mjegs4k*%4++1)&!)%9+v1f%p8^r'
-)
-
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# ⚠️ Domains autorisés
-ALLOWED_HOSTS = ['srv1230775.hstgr.cloud', '127.0.0.1', 'localhost']
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-dev-only-key-do-not-use-in-production'
+    else:
+        raise ImproperlyConfigured(
+            "La variable d'environnement SECRET_KEY est obligatoire en production."
+        )
+
+
+def _env_list(name, default=''):
+    """Lit une variable d'environnement 'a,b,c' et renvoie une liste propre."""
+    return [v.strip() for v in os.environ.get(name, default).split(',') if v.strip()]
+
+
+# Domaine public (serveur web) + accès locaux (healthchecks, tests)
+SITE_DOMAIN = os.environ.get('SITE_DOMAIN', 'bwanafacturation.bwhub.tech')
+ALLOWED_HOSTS = _env_list('ALLOWED_HOSTS', f'{SITE_DOMAIN},127.0.0.1,localhost')
 
 # Redirections HTTPS – seulement en production
 if DEBUG:
@@ -31,6 +43,7 @@ else:
     SECURE_SSL_REDIRECT = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', 31536000))
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_COOKIE_HTTPONLY = True
@@ -134,8 +147,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # AUTHENTIFICATION
 # ══════════════════════════════════════════
 LOGIN_URL = '/BwanaFacturation/users/connexion/'
-LOGIN_REDIRECT_URL = '/devis/'
-LOGOUT_REDIRECT_URL = '/users/connexion/'
+LOGIN_REDIRECT_URL = '/BwanaFacturation/devis/'
+LOGOUT_REDIRECT_URL = '/BwanaFacturation/users/connexion/'
 
 # ══════════════════════════════════════════
 # SESSIONS
@@ -191,9 +204,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
 # CSRF trusted origins
-CSRF_TRUSTED_ORIGINS = [
-    'https://srv1230775.hstgr.cloud',
-]
+CSRF_TRUSTED_ORIGINS = _env_list('CSRF_TRUSTED_ORIGINS', f'https://{SITE_DOMAIN}')
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS += [
@@ -204,4 +215,4 @@ if DEBUG:
 # ══════════════════════════════════════════
 # SITE
 # ══════════════════════════════════════════
-SITE_URL = os.environ.get('SITE_URL', 'https://srv1230775.hstgr.cloud')
+SITE_URL = os.environ.get('SITE_URL', f'https://{SITE_DOMAIN}')
