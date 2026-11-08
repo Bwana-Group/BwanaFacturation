@@ -19,6 +19,7 @@ urlpatterns = [
         path('factures/',   include('factures.urls')),
         path('api/',        include('taxes.urls')),
         path('produits/',   include('produits.urls')),
+        path('portail/',    include('clients.urls_portail')),
 
         # Administration personnalisée
         path('masque-zone-ad-rouge/', include('users.urls_admin')),

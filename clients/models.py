@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from taxes.models import Pays
 import logging
+import secrets
 import unicodedata
 
 logger = logging.getLogger(__name__)
@@ -14,8 +15,22 @@ def normaliser_texte(texte):
     return ''.join(c for c in texte if not unicodedata.combining(c))
 
 
+def generer_identifiant_portail():
+    """Identifiant du portail client, tiré au hasard (ex. BW-7K2M-X9QP)."""
+    alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+    brut = ''.join(secrets.choice(alphabet) for _ in range(8))
+    return f"BW-{brut[:4]}-{brut[4:]}"
+
+
 class Client(models.Model):
     utilisateur = models.ForeignKey(User, on_delete=models.CASCADE, related_name='clients')
+
+    # Portail client : cet identifiant + un code reçu par email
+    identifiant_portail = models.CharField(
+        max_length=12, unique=True, editable=False,
+        default=generer_identifiant_portail,
+        verbose_name="Identifiant du portail"
+    )
 
     # Identité
     nom    = models.CharField(max_length=100)
@@ -213,3 +228,6 @@ class Client(models.Model):
         ordering = ['-date_creation']
         verbose_name = 'Client'
         verbose_name_plural = 'Clients'
+
+
+from .portail_models import BlocagePortail, CodePortail, JournalPortail  # noqa: E402,F401

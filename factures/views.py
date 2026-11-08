@@ -597,6 +597,7 @@ def envoyer_facture_email(request, pk):
         'lien_pdf': lien_pdf,
         'utilisateur': request.user,
         'taxes_details': facture.get_taxes_details(),
+        'lien_portail': request.build_absolute_uri(reverse('portail_connexion')),
     }
     
     # Rendre le template HTML

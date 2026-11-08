@@ -1,0 +1,51 @@
+{% extends 'base_public.html' %}
+
+{% block title %}{% if type_acces == 'client' %}Espace client{% else %}Espace comptable{% endif %} — Bwana Facturation{% endblock %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 460px;">
+    <div class="card" style="box-shadow: 0 10px 40px rgba(16,24,40,.08);">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+                <i class="bi {% if type_acces == 'client' %}bi-person-badge{% else %}bi-calculator{% endif %}" style="font-size: 2.5rem; color: #1e3a5f;"></i>
+                <h1 class="h4 fw-bold mt-2 mb-1" style="color: #1e3a5f;">
+                    {% if type_acces == 'client' %}Espace client{% else %}Espace comptable{% endif %}
+                </h1>
+                <p class="text-muted small mb-0">
+                    {% if type_acces == 'client' %}
+                        Retrouvez tous vos devis et factures, sans mot de passe.
+                    {% else %}
+                        Consultez les devis et factures en lecture seule.
+                    {% endif %}
+                </p>
+            </div>
+
+            {% if erreur %}
+            <div class="alert alert-danger small" role="alert"><i class="bi bi-exclamation-triangle me-1"></i>{{ erreur }}</div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                {% if type_acces == 'client' %}
+                <label for="identifiant" class="form-label fw-semibold">Votre identifiant</label>
+                <input type="text" id="identifiant" name="identifiant" class="form-control form-control-lg text-center mb-1"
+                       placeholder="BW-XXXX-XXXX" maxlength="20" autocomplete="off" autocapitalize="characters" required autofocus>
+                <div class="form-text mb-3">Il figure sur vos devis et factures.</div>
+                {% else %}
+                <label for="identifiant" class="form-label fw-semibold">Votre adresse email</label>
+                <input type="email" id="identifiant" name="identifiant" class="form-control form-control-lg mb-3"
+                       placeholder="comptable@exemple.com" maxlength="254" autocomplete="email" required autofocus>
+                {% endif %}
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    Recevoir mon code par email
+                </button>
+            </form>
+
+            <p class="text-muted small text-center mt-4 mb-0">
+                <i class="bi bi-shield-lock me-1"></i>Un code à usage unique vous sera envoyé par email.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

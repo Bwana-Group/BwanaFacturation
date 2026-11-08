@@ -199,6 +199,14 @@ def profil(request):
                 messages.error(request, "Adresse email du supérieur invalide.")
                 return redirect('profil')
 
+        comptable_email = request.POST.get('comptable_email', '').strip()
+        if comptable_email:
+            try:
+                validate_email(comptable_email)
+            except ValidationError:
+                messages.error(request, "Adresse email du comptable invalide.")
+                return redirect('profil')
+
         request.user.first_name = request.POST.get('first_name', '').strip()
         request.user.last_name  = request.POST.get('last_name', '').strip()
         request.user.email      = email
@@ -207,6 +215,9 @@ def profil(request):
         # ── Infos entreprise
         profil_obj.superieur_nom        = request.POST.get('superieur_nom', '').strip()[:150]
         profil_obj.superieur_email      = superieur_email
+        comptable_change = comptable_email.lower() != profil_obj.comptable_email.lower()
+        profil_obj.comptable_nom        = request.POST.get('comptable_nom', '').strip()[:150]
+        profil_obj.comptable_email      = comptable_email
         profil_obj.nom_entreprise       = request.POST.get('nom_entreprise', '').strip()
         profil_obj.telephone            = request.POST.get('telephone', '').strip()
         profil_obj.email_entreprise     = request.POST.get('email_entreprise', '').strip()
@@ -235,12 +246,23 @@ def profil(request):
             profil_obj.logo = None
 
         profil_obj.save()
+        if comptable_email and comptable_change:
+            from clients.portail import inviter_comptable
+            if inviter_comptable(request, profil_obj):
+                messages.info(request, f"Une invitation a été envoyée à {comptable_email}.")
+            else:
+                messages.warning(request, "Comptable enregistré, mais l'invitation n'a pas pu être envoyée.")
         messages.success(request, "Profil mis à jour avec succès !")
         return redirect('profil')
 
+    from clients.portail_models import JournalPortail
+    acces_comptable = (JournalPortail.objects
+                       .filter(type_acces='comptable', email__iexact=profil_obj.comptable_email)[:5]
+                       if profil_obj.comptable_email else [])
     return render(request, 'users/profil.html', {
         'user':   request.user,
         'profil': profil_obj,
+        'acces_comptable': acces_comptable,
     })
 
 

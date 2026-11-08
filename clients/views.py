@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Client
+from django.views.decorators.http import require_POST
+from .models import Client, generer_identifiant_portail
 from .forms import ClientForm
 # ✅ Importer depuis taxes.models
 from taxes.models import Pays, Taxe  # ← Changement clé !
@@ -105,7 +106,21 @@ def detail_client(request, pk):
         'client':   client,
         'devis':    client.devis.all(),
         'factures': client.factures.all(),
+        'acces_portail': client.acces_portail.all()[:5],
     })
+
+
+@login_required
+@require_POST
+def nouvel_identifiant_portail(request, pk):
+    """L'ancien identifiant cesse de fonctionner, sessions ouvertes comprises."""
+    from . import portail
+    client = get_object_or_404(Client, pk=pk, utilisateur=request.user)
+    client.identifiant_portail = generer_identifiant_portail()
+    client.save(update_fields=['identifiant_portail'])
+    portail.journaliser('client', 'nouvel_identifiant', portail.adresse_ip(request), client=client)
+    messages.success(request, f"Nouvel identifiant : {client.identifiant_portail}. L'ancien ne fonctionne plus.")
+    return redirect('detail_client', pk=client.pk)
 
 
 # ══════════════════════════════════════════════════

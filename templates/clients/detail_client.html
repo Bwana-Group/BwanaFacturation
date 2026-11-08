@@ -53,6 +53,34 @@
                     </div>
                 </div>
                 
+                <div class="mt-3 p-3 rounded text-start" style="background: #f6f8fb;">
+                    <div class="small fw-semibold mb-1" style="color: #1e3a5f;">
+                        <i class="bi bi-person-badge me-1"></i>Portail client
+                    </div>
+                    <div class="fw-bold" style="letter-spacing: .05em;">{{ client.identifiant_portail }}</div>
+                    {% if client.email %}
+                        <div class="small text-muted mt-1">Le client entre cet identifiant, puis le code reçu par email.</div>
+                    {% else %}
+                        <div class="small text-danger mt-1">Ajoutez un email à ce client pour activer son portail.</div>
+                    {% endif %}
+                    <a href="{% url 'portail_connexion' %}" target="_blank" rel="noopener" class="small d-block mt-1">Ouvrir le portail</a>
+                    <form method="post" action="{% url 'nouvel_identifiant_portail' client.pk %}" class="mt-2"
+                          onsubmit="return confirm('Générer un nouvel identifiant ? L\'ancien ne fonctionnera plus, y compris sur les documents déjà envoyés.')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-arrow-repeat me-1"></i>Nouvel identifiant
+                        </button>
+                    </form>
+                    {% if acces_portail %}
+                    <div class="mt-2 pt-2 border-top">
+                        <div class="small fw-semibold" style="color: #1e3a5f;">Derniers accès</div>
+                        {% for a in acces_portail %}
+                        <div class="small text-muted">{{ a.date|date:"d/m/Y H:i" }} · {{ a.get_action_display }}{% if a.detail %} {{ a.detail }}{% endif %}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
                 <hr class="my-3">
                 
                 <div class="d-flex gap-2 justify-content-center">

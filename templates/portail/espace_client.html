@@ -1,0 +1,83 @@
+{% extends 'base_public.html' %}
+
+{% block title %}Mes documents — Bwana Facturation{% endblock %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5" style="max-width: 980px;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="h4 fw-bold mb-1" style="color: #1e3a5f;">Bonjour {{ client.nom_complet }}</h1>
+            <div class="text-muted small">
+                {% if client.entreprise %}{{ client.entreprise }} · {% endif %}Identifiant {{ client.identifiant_portail }}
+            </div>
+        </div>
+        <form method="post" action="{% url 'portail_deconnexion' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-box-arrow-right me-1"></i>Se déconnecter</button>
+        </form>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            <h2 class="h6 fw-bold p-3 mb-0" style="color: #1e3a5f;"><i class="bi bi-receipt me-2"></i>Mes factures</h2>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Numéro</th><th>Date</th><th>Échéance</th><th class="text-end">Total TTC</th><th>Statut</th><th class="text-end">PDF</th></tr></thead>
+                    <tbody>
+                        {% for f in factures %}
+                        <tr>
+                            <td class="fw-semibold text-nowrap">{{ f.numero }}</td>
+                            <td class="text-nowrap">{{ f.date_creation|date:"d/m/Y" }}</td>
+                            <td class="text-nowrap">{{ f.date_echeance|date:"d/m/Y" }}</td>
+                            <td class="text-end text-nowrap">{{ f.calculer_total_ttc|floatformat:"2g" }} {{ f.get_devise }}</td>
+                            <td>{% include 'partials/badge_facture.html' with doc=f %}</td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-info" target="_blank" rel="noopener" title="Voir" aria-label="Voir {{ f.numero }}" href="{% url 'portail_pdf' 'facture' f.pk %}"><i class="bi bi-eye"></i></a>
+                                <a class="btn btn-sm btn-outline-primary" title="Télécharger" aria-label="Télécharger {{ f.numero }}" href="{% url 'portail_pdf' 'facture' f.pk %}?telecharger=1"><i class="bi bi-download"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Aucune facture pour le moment.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <h2 class="h6 fw-bold p-3 mb-0" style="color: #1e3a5f;"><i class="bi bi-file-text me-2"></i>Mes devis</h2>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Numéro</th><th>Date</th><th>Validité</th><th class="text-end">Total TTC</th><th>Statut</th><th class="text-end">PDF</th></tr></thead>
+                    <tbody>
+                        {% for d in devis %}
+                        <tr>
+                            <td class="fw-semibold text-nowrap">{{ d.numero }}</td>
+                            <td class="text-nowrap">{{ d.date_creation|date:"d/m/Y" }}</td>
+                            <td class="text-nowrap">{{ d.date_validite|date:"d/m/Y" }}</td>
+                            <td class="text-end text-nowrap">{{ d.calculer_total_ttc|floatformat:"2g" }} {{ d.get_devise }}</td>
+                            <td>
+                                {% if d.statut == 'approuve_superieur' %}
+                                    <span class="badge" style="background: #17a2b8; color: white;">En attente de votre réponse</span>
+                                {% else %}
+                                    {% include 'partials/badge_devis.html' with doc=d %}
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-info" target="_blank" rel="noopener" title="Voir" aria-label="Voir {{ d.numero }}" href="{% url 'portail_pdf' 'devis' d.pk %}"><i class="bi bi-eye"></i></a>
+                                <a class="btn btn-sm btn-outline-primary" title="Télécharger" aria-label="Télécharger {{ d.numero }}" href="{% url 'portail_pdf' 'devis' d.pk %}?telecharger=1"><i class="bi bi-download"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Aucun devis pour le moment.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

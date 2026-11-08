@@ -1,0 +1,45 @@
+{% extends 'base_public.html' %}
+
+{% block title %}Code de connexion — Bwana Facturation{% endblock %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 460px;">
+    <div class="card" style="box-shadow: 0 10px 40px rgba(16,24,40,.08);">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+                <i class="bi bi-envelope-check" style="font-size: 2.5rem; color: #1e3a5f;"></i>
+                <h1 class="h4 fw-bold mt-2 mb-1" style="color: #1e3a5f;">Entrez votre code</h1>
+                <p class="text-muted small mb-0">
+                    Si {% if type_acces == 'client' %}cet identifiant est valide{% else %}cette adresse a un accès{% endif %},
+                    un code à 6 chiffres vient d'être envoyé par email. Il est valable 10 minutes.
+                </p>
+            </div>
+
+            {% if erreur %}
+            <div class="alert alert-danger small" role="alert"><i class="bi bi-exclamation-triangle me-1"></i>{{ erreur }}</div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <label for="code" class="form-label fw-semibold">Code reçu</label>
+                <input type="text" id="code" name="code" class="form-control form-control-lg text-center mb-3"
+                       inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+                       placeholder="000000" style="letter-spacing: .4em;" required autofocus>
+                <button type="submit" class="btn btn-primary btn-lg w-100">Accéder à mes documents</button>
+            </form>
+
+            <form method="post" action="{% url 'portail_renvoyer_code' %}" class="text-center mt-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link btn-sm text-decoration-none">Renvoyer un code</button>
+            </form>
+            <div class="text-center">
+                <a class="small text-muted text-decoration-none"
+                   href="{% if type_acces == 'client' %}{% url 'portail_connexion' %}{% else %}{% url 'portail_comptable_connexion' %}{% endif %}">
+                    <i class="bi bi-arrow-left me-1"></i>Changer {% if type_acces == 'client' %}d'identifiant{% else %}d'adresse{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -43,6 +43,10 @@ class ProfilUtilisateur(models.Model):
     superieur_nom   = models.CharField(max_length=150, blank=True, verbose_name="Nom du supérieur")
     superieur_email = models.EmailField(blank=True, verbose_name="Email du supérieur")
 
+    # ── Comptable : consultation seule des devis et factures
+    comptable_nom   = models.CharField(max_length=150, blank=True, verbose_name="Nom du comptable")
+    comptable_email = models.EmailField(blank=True, verbose_name="Email du comptable")
+
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)
 

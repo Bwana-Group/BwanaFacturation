@@ -89,6 +89,7 @@ def _logo_image(path, largeur=3.5*cm, hauteur=2*cm):
 
 
 def generer_pdf_devis(devis):
+    from clients.portail import url_portail_public
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer, pagesize=A4,
@@ -219,6 +220,10 @@ def generer_pdf_devis(devis):
         col_client.append(Paragraph(f"Tél : {client.telephone_complet}", s_normal))
     for line in adresse_client_lines:
         col_client.append(Paragraph(line, s_small))
+    col_client.append(Paragraph(f"Identifiant client : <b>{client.identifiant_portail}</b>", s_small))
+    url_portail = url_portail_public()
+    if url_portail:
+        col_client.append(Paragraph(f"Espace client : {url_portail}", s_small))
 
     # ── Table en-tête 3 colonnes
     header_data = [[col_emetteur, col_titre, col_client]]

@@ -641,6 +641,7 @@ def _envoyer_email_devis(request, devis, destinataire, sujet, template, contexte
         'taxes_details': devis.get_taxes_details(),
         # L'émetteur du devis — le supérieur qui approuve n'est pas connecté
         'utilisateur': devis.utilisateur,
+        'lien_portail': request.build_absolute_uri(reverse('portail_connexion')),
         **contexte,
     }
     email = EmailMessage(

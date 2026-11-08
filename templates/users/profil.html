@@ -205,6 +205,39 @@
             </div>
         </div>
 
+        <!-- COMPTABLE -->
+        <div class="card border-0 shadow-sm mb-4" id="comptable">
+            <div class="card-body p-3 p-md-4">
+                <h6 class="fw-bold mb-1" style="color: #1e3a5f;">
+                    <i class="bi bi-calculator me-2"></i>Comptable
+                </h6>
+                <p class="text-muted small mb-3">
+                    Cette personne pourra consulter et télécharger vos devis et factures, sans rien modifier.
+                    Elle recevra une invitation par email. Pour retirer son accès, effacez son email.
+                </p>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold small" style="color: #1e3a5f;">Nom du comptable</label>
+                        <input type="text" name="comptable_nom" class="form-control" maxlength="150"
+                               value="{{ profil.comptable_nom }}" placeholder="Ex : Cabinet Ouédraogo">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold small" style="color: #1e3a5f;">Email du comptable</label>
+                        <input type="email" name="comptable_email" class="form-control"
+                               value="{{ profil.comptable_email }}" placeholder="comptable@cabinet.com">
+                    </div>
+                </div>
+                {% if acces_comptable %}
+                <div class="mt-3 pt-3 border-top">
+                    <div class="small fw-semibold mb-1" style="color: #1e3a5f;">Derniers accès</div>
+                    {% for a in acces_comptable %}
+                    <div class="small text-muted">{{ a.date|date:"d/m/Y H:i" }} · {{ a.get_action_display }}{% if a.detail %} {{ a.detail }}{% endif %}{% if a.ip %} · {{ a.ip }}{% endif %}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- BOUTON SAUVEGARDER -->
         <button type="submit" class="btn w-100 py-2 fw-bold mb-3" 
                 style="background: linear-gradient(135deg, #1e3a5f, #2d6a9f); color: white; border: none; border-radius: 10px;">

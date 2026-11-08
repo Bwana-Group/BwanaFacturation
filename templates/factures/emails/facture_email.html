@@ -166,6 +166,10 @@
             <p style="font-size: 13px; color: #666; text-align: center;">Aucun compte n'est nécessaire pour consulter la facture.</p>
             
             <p>Nous restons à votre disposition pour toute information complémentaire.</p>
+            <p style="margin:16px 0 0; padding:12px 14px; background:#f6f8fb; border-radius:10px; font-size:13px; color:#44505f;">
+                    Retrouvez tous vos documents sur votre <a href="{{ lien_portail }}" style="color:#2d6a9f;">espace client</a>,
+                    sans mot de passe. Votre identifiant : <strong>{{ client.identifiant_portail }}</strong>
+                </p>
             <p>Cordialement,<br>
             <strong>{{ utilisateur.get_full_name|default:utilisateur.username }}</strong></p>
         </div>
