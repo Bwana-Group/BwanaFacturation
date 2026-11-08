@@ -10,10 +10,51 @@ load_dotenv()
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# ══════════════════════════════════════════
+# HELPERS (lecture des variables d'environnement)
+# ══════════════════════════════════════════
+_TRUE_VALUES = {'1', 'true', 'yes', 'on', 'y', 't'}
+
+
+def _env(name, default=''):
+    """Texte : renvoie la valeur nettoyée, ou `default` si absente / vide."""
+    value = os.environ.get(name)
+    if value is None or value.strip() == '':
+        return default
+    return value.strip()
+
+
+def _env_bool(name, default=False):
+    """Booléen : 1/true/yes/on (insensible à la casse) => True."""
+    value = os.environ.get(name)
+    if value is None or value.strip() == '':
+        return default
+    return value.strip().lower() in _TRUE_VALUES
+
+
+def _env_int(name, default=0):
+    """Entier : lève une erreur claire si la valeur n'est pas un nombre."""
+    value = os.environ.get(name)
+    if value is None or value.strip() == '':
+        return default
+    try:
+        return int(value.strip())
+    except ValueError:
+        raise ImproperlyConfigured(
+            f"La variable d'environnement {name} doit être un nombre entier (reçu : {value!r})."
+        )
+
+
+def _env_list(name, default=''):
+    """Liste : lit une variable 'a,b,c' et renvoie une liste propre."""
+    return [v.strip() for v in os.environ.get(name, default).split(',') if v.strip()]
+
+
 # ══════════════════════════════════════════
 # SÉCURITÉ
 # ══════════════════════════════════════════
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = _env_bool('DEBUG', False)
 
 SECRET_KEY = os.environ.get('SECRET_KEY', '')
 if not SECRET_KEY:
@@ -24,31 +65,20 @@ if not SECRET_KEY:
             "La variable d'environnement SECRET_KEY est obligatoire en production."
         )
 
-
-def _env_list(name, default=''):
-    """Lit une variable d'environnement 'a,b,c' et renvoie une liste propre."""
-    return [v.strip() for v in os.environ.get(name, default).split(',') if v.strip()]
-
-
 # Domaine public (serveur web) + accès locaux (healthchecks, tests)
-SITE_DOMAIN = os.environ.get('SITE_DOMAIN', 'bwanafacturation.bwhub.tech')
+SITE_DOMAIN = _env('SITE_DOMAIN', 'bwanafacturation.bwhub.tech')
 ALLOWED_HOSTS = _env_list('ALLOWED_HOSTS', f'{SITE_DOMAIN},127.0.0.1,localhost')
 
-# Redirections HTTPS – seulement en production
-if DEBUG:
-    SECURE_SSL_REDIRECT = False
-    CSRF_COOKIE_SECURE = False
-    SESSION_COOKIE_SECURE = False
-else:
-    SECURE_SSL_REDIRECT = True
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', 31536000))
+# Redirections HTTPS / cookies sécurisés : actifs en production, désactivés en DEBUG
+# (chacun peut être forcé via .env)
+SECURE_SSL_REDIRECT = _env_bool('SECURE_SSL_REDIRECT', not DEBUG)
+CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', not DEBUG)
+SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE', not DEBUG)
+SECURE_HSTS_SECONDS = _env_int('SECURE_HSTS_SECONDS', 0 if DEBUG else 31536000)
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_COOKIE_HTTPONLY = True
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+# Derrière un reverse proxy (Nginx, etc.) qui envoie X-Forwarded-Proto
+if _env_bool('USE_PROXY_SSL_HEADER', True):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ══════════════════════════════════════════
 # APPLICATIONS
@@ -104,20 +134,20 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ══════════════════════════════════════════
 DATABASES = {
     'default': {
-        'ENGINE':   'django.db.backends.postgresql',
-        'NAME':     os.environ.get('DB_NAME', 'gestion_df'),
-        'USER':     os.environ.get('DB_USER', 'admis_pdf'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
-        'HOST':     os.environ.get('DB_HOST', 'localhost'),
-        'PORT':     os.environ.get('DB_PORT', '5432'),
+        'ENGINE':   _env('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME':     _env('DB_NAME', 'gestion_df'),
+        'USER':     _env('DB_USER', 'admis_pdf'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST':     _env('DB_HOST', 'localhost'),
+        'PORT':     _env('DB_PORT', '5432'),
     }
 }
 
 # Développement local sans PostgreSQL : USE_SQLITE=True dans le .env
-if os.environ.get('USE_SQLITE', 'False') == 'True':
+if _env_bool('USE_SQLITE', False):
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME':   BASE_DIR / 'db.sqlite3',
+        'NAME':   BASE_DIR / _env('SQLITE_NAME', 'db.sqlite3'),
     }
 
 # ══════════════════════════════════════════
@@ -133,36 +163,41 @@ AUTH_PASSWORD_VALIDATORS = [
 # ══════════════════════════════════════════
 # INTERNATIONALISATION
 # ══════════════════════════════════════════
-LANGUAGE_CODE = 'fr-fr'
-TIME_ZONE = 'Africa/Ouagadougou'
-USE_I18N = True
-USE_TZ = True
+LANGUAGE_CODE = _env('LANGUAGE_CODE', 'fr-fr')
+TIME_ZONE = _env('TIME_ZONE', 'Africa/Ouagadougou')
+USE_I18N = _env_bool('USE_I18N', True)
+USE_TZ = _env_bool('USE_TZ', True)
 
 # ══════════════════════════════════════════
 # FICHIERS STATIQUES & MEDIA
 # ══════════════════════════════════════════
-STATIC_URL = '/static/'
+STATIC_URL = _env('STATIC_URL', '/static/')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = _env('STATIC_ROOT', os.path.join(BASE_DIR, 'staticfiles'))
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = _env('MEDIA_URL', '/media/')
+MEDIA_ROOT = _env('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ══════════════════════════════════════════
 # AUTHENTIFICATION
 # ══════════════════════════════════════════
-LOGIN_URL = '/BwanaFacturation/users/connexion/'
-LOGIN_REDIRECT_URL = '/BwanaFacturation/devis/tableau-de-bord/'
-LOGOUT_REDIRECT_URL = '/BwanaFacturation/users/connexion/'
+# Préfixe d'URL de l'application (doit correspondre à config/urls.py)
+APP_URL_PREFIX = _env('APP_URL_PREFIX', '/BwanaFacturation').rstrip('/')
+
+LOGIN_URL = _env('LOGIN_URL', f'{APP_URL_PREFIX}/users/connexion/')
+LOGIN_REDIRECT_URL = _env('LOGIN_REDIRECT_URL', f'{APP_URL_PREFIX}/devis/tableau-de-bord/')
+LOGOUT_REDIRECT_URL = _env('LOGOUT_REDIRECT_URL', f'{APP_URL_PREFIX}/users/connexion/')
 
 # ══════════════════════════════════════════
 # SESSIONS
 # ══════════════════════════════════════════
-SESSION_COOKIE_AGE = 3600
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_AGE = _env_int('SESSION_COOKIE_AGE', 3600)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = _env_bool('SESSION_EXPIRE_AT_BROWSER_CLOSE', True)
+SESSION_SAVE_EVERY_REQUEST = _env_bool('SESSION_SAVE_EVERY_REQUEST', True)
+SESSION_COOKIE_HTTPONLY = _env_bool('SESSION_COOKIE_HTTPONLY', True)
+SESSION_COOKIE_SAMESITE = _env('SESSION_COOKIE_SAMESITE', 'Lax')
 
 # ══════════════════════════════════════════
 # MESSAGES BOOTSTRAP
@@ -176,42 +211,64 @@ MESSAGE_TAGS = {
 }
 
 # ══════════════════════════════════════════
-# EMAIL PRINCIPAL (notifications, validation...)
+# EMAIL PRINCIPAL (activation, réinitialisation, notifications...)
 # ══════════════════════════════════════════
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+# Par défaut : SMTP Hostinger. Le chiffrement se déduit du port :
+#   465 => SSL implicite | 587 => STARTTLS (TLS)
+# Chaque valeur peut être forcée dans le .env.
+EMAIL_BACKEND = _env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = _env('EMAIL_HOST', 'smtp.hostinger.com')
+EMAIL_PORT = _env_int('EMAIL_PORT', 465)
+EMAIL_USE_SSL = _env_bool('EMAIL_USE_SSL', EMAIL_PORT == 465)
+EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', EMAIL_PORT == 587)
+EMAIL_TIMEOUT = _env_int('EMAIL_TIMEOUT', 30)
+EMAIL_HOST_USER = _env('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('EMAIL_HOST_USER', 'noreply@bwanafacturation.com')
+DEFAULT_FROM_EMAIL = _env('DEFAULT_FROM_EMAIL', '') or EMAIL_HOST_USER or f'noreply@{SITE_DOMAIN}'
 
 # ══════════════════════════════════════════
 # EMAIL DÉDIÉ AUX FACTURES ET DEVIS (2ème compte)
 # ══════════════════════════════════════════
-FACTURE_EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# Sans compte dédié (FACTURE_*), on utilise le compte principal ci-dessus.
-FACTURE_EMAIL_HOST = os.environ.get('FACTURE_EMAIL_HOST', EMAIL_HOST)
-FACTURE_EMAIL_PORT = int(os.environ.get('FACTURE_EMAIL_PORT', EMAIL_PORT))
-FACTURE_EMAIL_USE_TLS = True
-FACTURE_EMAIL_HOST_USER = os.environ.get('FACTURE_EMAIL_HOST_USER') or EMAIL_HOST_USER
+# Sans variables FACTURE_*, on réutilise le compte principal ci-dessus.
+# NB : si une configuration « factures » active existe dans
+# Administration → Configuration email, elle est prioritaire sur ce bloc.
+FACTURE_EMAIL_BACKEND = _env('FACTURE_EMAIL_BACKEND', EMAIL_BACKEND)
+FACTURE_EMAIL_HOST = _env('FACTURE_EMAIL_HOST', EMAIL_HOST)
+FACTURE_EMAIL_PORT = _env_int('FACTURE_EMAIL_PORT', EMAIL_PORT)
+FACTURE_EMAIL_USE_SSL = _env_bool('FACTURE_EMAIL_USE_SSL', FACTURE_EMAIL_PORT == 465)
+FACTURE_EMAIL_USE_TLS = _env_bool('FACTURE_EMAIL_USE_TLS', FACTURE_EMAIL_PORT == 587)
+FACTURE_EMAIL_HOST_USER = _env('FACTURE_EMAIL_HOST_USER', '') or EMAIL_HOST_USER
 FACTURE_EMAIL_HOST_PASSWORD = os.environ.get('FACTURE_EMAIL_HOST_PASSWORD') or EMAIL_HOST_PASSWORD
-FACTURE_DEFAULT_FROM_EMAIL = (os.environ.get('FACTURE_DEFAULT_FROM_EMAIL')
-                              or FACTURE_EMAIL_HOST_USER
-                              or 'factures@bwanafacturation.com')
+FACTURE_DEFAULT_FROM_EMAIL = (
+    _env('FACTURE_DEFAULT_FROM_EMAIL', '')
+    or FACTURE_EMAIL_HOST_USER
+    or f'factures@{SITE_DOMAIN}'
+)
+
+# Garde-fou : SSL et TLS sont mutuellement exclusifs (sinon Django plante à l'envoi)
+if EMAIL_USE_SSL and EMAIL_USE_TLS:
+    raise ImproperlyConfigured(
+        "EMAIL_USE_SSL et EMAIL_USE_TLS ne peuvent pas être actifs en même temps "
+        "(465 => SSL, 587 => TLS)."
+    )
+if FACTURE_EMAIL_USE_SSL and FACTURE_EMAIL_USE_TLS:
+    raise ImproperlyConfigured(
+        "FACTURE_EMAIL_USE_SSL et FACTURE_EMAIL_USE_TLS ne peuvent pas être actifs "
+        "en même temps (465 => SSL, 587 => TLS)."
+    )
 
 # ══════════════════════════════════════════
 # CSRF & SÉCURITÉ
 # ══════════════════════════════════════════
-CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_HTTPONLY = _env_bool('CSRF_COOKIE_HTTPONLY', False)
+CSRF_COOKIE_SAMESITE = _env('CSRF_COOKIE_SAMESITE', 'Lax')
+CSRF_USE_SESSIONS = _env_bool('CSRF_USE_SESSIONS', False)
+CSRF_COOKIE_NAME = _env('CSRF_COOKIE_NAME', 'csrftoken')
+CSRF_HEADER_NAME = _env('CSRF_HEADER_NAME', 'HTTP_X_CSRFTOKEN')
 
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+SECURE_BROWSER_XSS_FILTER = _env_bool('SECURE_BROWSER_XSS_FILTER', True)
+SECURE_CONTENT_TYPE_NOSNIFF = _env_bool('SECURE_CONTENT_TYPE_NOSNIFF', True)
+X_FRAME_OPTIONS = _env('X_FRAME_OPTIONS', 'DENY')
 
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = _env_list('CSRF_TRUSTED_ORIGINS', f'https://{SITE_DOMAIN}')
@@ -225,4 +282,4 @@ if DEBUG:
 # ══════════════════════════════════════════
 # SITE
 # ══════════════════════════════════════════
-SITE_URL = os.environ.get('SITE_URL', f'https://{SITE_DOMAIN}')
+SITE_URL = _env('SITE_URL', f'https://{SITE_DOMAIN}')
