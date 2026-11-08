@@ -13,51 +13,19 @@ from produits.models import Produit
 from django.db.models import Q, Count
 from django.urls import reverse
 from django.utils import timezone
-from django.core.mail import send_mail, get_connection, EmailMessage
+from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from users.email_utils import (
+    get_email_config, get_email_connection, get_from_email, envoyer_mail,
+)
 from taxes.models import Taxe
 
-
-# ✅ Helper pour obtenir la configuration email depuis la base de données
-def get_email_config(type_email='principal'):
-    """Récupère la configuration email depuis la base de données"""
-    try:
-        from users.admin_models import ConfigurationEmail
-        config = ConfigurationEmail.objects.get(type_email=type_email, actif=True)
-        return config
-    except Exception:
-        return None
+import logging
+logger = logging.getLogger(__name__)
 
 
-def get_email_connection(type_email='principal'):
-    """Retourne une connexion SMTP basée sur la configuration en base"""
-    config = get_email_config(type_email)
-    if config:
-        return get_connection(
-            host=config.host,
-            port=config.port,
-            username=config.username,
-            password=config.password,
-            use_tls=config.use_tls,
-            use_ssl=config.use_ssl,
-        )
-    # Fallback sur les settings
-    return get_connection(
-        host=getattr(settings, 'FACTURE_EMAIL_HOST', 'smtp.gmail.com'),
-        port=getattr(settings, 'FACTURE_EMAIL_PORT', 587),
-        username=getattr(settings, 'FACTURE_EMAIL_HOST_USER', ''),
-        password=getattr(settings, 'FACTURE_EMAIL_HOST_PASSWORD', ''),
-        use_tls=True,
-    )
-
-
-def get_from_email(type_email='principal'):
-    """Retourne l'adresse d'expédition depuis la base ou les settings"""
-    config = get_email_config(type_email)
-    if config:
-        return config.from_email
-    return getattr(settings, 'FACTURE_DEFAULT_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL)
+# Envoi d'emails centralisé : voir users/email_utils.py
 
 
 @login_required
@@ -177,8 +145,8 @@ def ajouter_devis(request):
             return redirect('gestion_liens_devis', pk=devis.pk)
         else:
             messages.error(request, 'Veuillez corriger les erreurs dans le formulaire.')
-            print(f"ERREURS FORM: {form.errors}")
-            print(f"ERREURS FORMSET: {formset.errors}")
+            logger.warning("Erreurs formulaire : %s", form.errors)
+            logger.warning("Erreurs formset : %s", formset.errors)
     else:
         form = DevisForm(user=request.user)
         formset = LigneDevisFormSet(prefix='lignes', user=request.user)
@@ -263,16 +231,15 @@ def visualiser_devis_approbation(request, token):
                                "le devis doit lui être transmis manuellement.")
 
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Devis {devis.numero} approuvé',
                     message=(f'Votre devis {devis.numero} a été approuvé.\n\n'
                              f'Commentaire : {commentaire or "aucun"}\n\n{info_client}'),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[devis.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
 
             return render(request, 'devis/public/approbation.html', {
                 'devis': devis,
@@ -290,15 +257,14 @@ def visualiser_devis_approbation(request, token):
             devis.save()
             
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Devis {devis.numero} rejeté',
                     message=f'Votre devis {devis.numero} a été rejeté.\n\nMotif : {commentaire}',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[devis.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
             
             return render(request, 'devis/public/approbation.html', {
                 'devis': devis,
@@ -353,15 +319,14 @@ def visualiser_devis_client(request, token):
             devis.save()
             
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Devis {devis.numero} accepté',
                     message=f'Le client {devis.client.nom} a accepté le devis {devis.numero}.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[devis.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
             
             return render(request, 'devis/public/client.html', {
                 'devis': devis,
@@ -376,15 +341,14 @@ def visualiser_devis_client(request, token):
             devis.save()
             
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Devis {devis.numero} refusé',
                     message=f'Le client {devis.client.nom} a refusé le devis {devis.numero}.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[devis.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
             
             return render(request, 'devis/public/client.html', {
                 'devis': devis,

@@ -258,6 +258,29 @@ if FACTURE_EMAIL_USE_SSL and FACTURE_EMAIL_USE_TLS:
     )
 
 # ══════════════════════════════════════════
+# INSCRIPTION
+# ══════════════════════════════════════════
+# False (recommandé) : un compte reste inactif tant que l'email d'activation n'est pas confirmé,
+# même si l'envoi de l'email échoue. True : active et connecte directement le compte si l'envoi échoue.
+ALLOW_SIGNUP_WITHOUT_EMAIL = _env_bool('ALLOW_SIGNUP_WITHOUT_EMAIL', False)
+
+# ══════════════════════════════════════════
+# LOGS (visibles dans la sortie de gunicorn / journalctl)
+# ══════════════════════════════════════════
+LOG_LEVEL = _env('LOG_LEVEL', 'INFO').upper()
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {'format': '%(asctime)s [%(levelname)s] %(name)s : %(message)s'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'standard'},
+    },
+    'root': {'handlers': ['console'], 'level': LOG_LEVEL},
+}
+
+# ══════════════════════════════════════════
 # CSRF & SÉCURITÉ
 # ══════════════════════════════════════════
 CSRF_COOKIE_HTTPONLY = _env_bool('CSRF_COOKIE_HTTPONLY', False)

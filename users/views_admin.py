@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
-from django.core.mail import send_mail
+from .email_utils import envoyer_mail
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
@@ -222,10 +222,9 @@ def admin_reset_password(request, pk):
             'users/emails/reset_password_email.html',
             {'user': user, 'reset_url': reset_url}
         )
-        send_mail(
+        envoyer_mail(
             subject='Bwana Facturation — Réinitialisation de votre mot de passe',
             message=f'Reset : {reset_url}',
-            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             html_message=html_message,
             fail_silently=False,
@@ -434,6 +433,17 @@ def admin_config_email_modifier(request, pk):
         config.port = int(request.POST.get('port', config.port))
         config.use_tls = request.POST.get('use_tls') == 'on'
         config.use_ssl = request.POST.get('use_ssl') == 'on'
+        # SSL et TLS sont mutuellement exclusifs (465 => SSL, 587 => TLS)
+        if config.use_ssl and config.use_tls:
+            if config.port == 465:
+                config.use_tls = False
+            else:
+                config.use_ssl = False
+            messages.warning(
+                request,
+                "SSL et TLS ne peuvent pas être actifs ensemble : "
+                + ("SSL" if config.use_ssl else "TLS") + " a été conservé selon le port."
+            )
         config.username = request.POST.get('username', config.username)
         config.from_email = request.POST.get('from_email', config.from_email)
         
@@ -464,13 +474,19 @@ def admin_config_email_tester(request, pk):
             return redirect('admin_config_email')
         
         try:
+            use_ssl, use_tls = config.use_ssl, config.use_tls
+            if use_ssl and use_tls:
+                if config.port == 465:
+                    use_tls = False
+                else:
+                    use_ssl = False
             connection = get_connection(
                 host=config.host,
                 port=config.port,
                 username=config.username,
                 password=config.password,
-                use_tls=config.use_tls,
-                use_ssl=config.use_ssl,
+                use_tls=use_tls,
+                use_ssl=use_ssl,
             )
             
             email = EmailMessage(

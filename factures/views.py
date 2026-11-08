@@ -13,52 +13,20 @@ import os
 from django.conf import settings
 from django.utils import timezone
 from django.urls import reverse
-from django.core.mail import send_mail, get_connection, EmailMessage
+from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from users.email_utils import (
+    get_email_config, get_email_connection, get_from_email, envoyer_mail,
+)
 import json
 from decimal import Decimal
 
-
-# ✅ Helper pour obtenir la configuration email depuis la base de données
-def get_email_config(type_email='factures'):
-    """Récupère la configuration email depuis la base de données"""
-    try:
-        from users.admin_models import ConfigurationEmail
-        config = ConfigurationEmail.objects.get(type_email=type_email, actif=True)
-        return config
-    except Exception:
-        return None
+import logging
+logger = logging.getLogger(__name__)
 
 
-def get_email_connection(type_email='factures'):
-    """Retourne une connexion SMTP basée sur la configuration en base"""
-    config = get_email_config(type_email)
-    if config:
-        return get_connection(
-            host=config.host,
-            port=config.port,
-            username=config.username,
-            password=config.password,
-            use_tls=config.use_tls,
-            use_ssl=config.use_ssl,
-        )
-    # Fallback sur les settings
-    return get_connection(
-        host=getattr(settings, 'FACTURE_EMAIL_HOST', 'smtp.gmail.com'),
-        port=getattr(settings, 'FACTURE_EMAIL_PORT', 587),
-        username=getattr(settings, 'FACTURE_EMAIL_HOST_USER', ''),
-        password=getattr(settings, 'FACTURE_EMAIL_HOST_PASSWORD', ''),
-        use_tls=True,
-    )
-
-
-def get_from_email(type_email='factures'):
-    """Retourne l'adresse d'expédition depuis la base ou les settings"""
-    config = get_email_config(type_email)
-    if config:
-        return config.from_email
-    return getattr(settings, 'FACTURE_DEFAULT_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL)
+# Envoi d'emails centralisé : voir users/email_utils.py
 
 
 @login_required
@@ -148,8 +116,8 @@ def ajouter_facture(request):
             return redirect('gestion_liens_facture', pk=facture.pk)
         else:
             messages.error(request, 'Veuillez corriger les erreurs.')
-            print(f"ERREURS FORM: {form.errors}")
-            print(f"ERREURS FORMSET: {formset.errors}")
+            logger.warning("Erreurs formulaire : %s", form.errors)
+            logger.warning("Erreurs formset : %s", formset.errors)
     else:
         form = FactureForm(request.user)
         formset = LigneFactureFormSet(prefix='lignes', user=request.user)
@@ -224,15 +192,14 @@ def visualiser_facture_approbation(request, token):
             facture.save()
             
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Facture {facture.numero} approuvée',
                     message=f'Votre facture {facture.numero} a été approuvée.\n\nCommentaire : {commentaire}',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
             
             return render(request, 'factures/public/approbation.html', {
                 'facture': facture,
@@ -248,15 +215,14 @@ def visualiser_facture_approbation(request, token):
             facture.save()
             
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Facture {facture.numero} rejetée',
                     message=f'Votre facture {facture.numero} a été rejetée.\n\nMotif : {commentaire}',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
             
             return render(request, 'factures/public/approbation.html', {
                 'facture': facture,
@@ -300,15 +266,14 @@ def visualiser_facture_client(request, token):
             facture.save()
             
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Facture {facture.numero} acceptée',
                     message=f'Le client {facture.client.nom} a accepté la facture {facture.numero}.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
             
             return render(request, 'factures/public/client.html', {
                 'facture': facture,
@@ -323,15 +288,14 @@ def visualiser_facture_client(request, token):
             facture.save()
             
             try:
-                send_mail(
+                envoyer_mail(
                     subject=f'Facture {facture.numero} refusée',
                     message=f'Le client {facture.client.nom} a refusé la facture {facture.numero}.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[facture.utilisateur.email],
                     fail_silently=True,
                 )
-            except:
-                pass
+            except Exception:
+                logger.exception("Échec de l'email de notification")
             
             return render(request, 'factures/public/client.html', {
                 'facture': facture,
@@ -431,8 +395,8 @@ def modifier_facture(request, pk):
             return redirect('detail_facture', pk=facture.pk)
         else:
             messages.error(request, 'Veuillez corriger les erreurs.')
-            print(f"ERREURS FORM: {form.errors}")
-            print(f"ERREURS FORMSET: {formset.errors}")
+            logger.warning("Erreurs formulaire : %s", form.errors)
+            logger.warning("Erreurs formset : %s", formset.errors)
         
         lignes_existantes = []
     else:

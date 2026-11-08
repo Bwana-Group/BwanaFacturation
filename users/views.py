@@ -5,7 +5,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode, url_has_allowed_host_and_scheme
 from django.urls import reverse
@@ -15,6 +14,10 @@ from django.utils.encoding import force_bytes, force_str
 from django.conf import settings
 from .tokens import token_activation
 from .forms import InscriptionForm
+from .email_utils import envoyer_mail
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 # ══════════════════════════════════════════
@@ -47,20 +50,28 @@ def inscription(request):
                     'users/emails/activation_email.html',
                     {'user': user, 'activation_url': activation_url}
                 )
-                send_mail(
+                envoyer_mail(
                     subject='Bwana Facturation — Activez votre compte',
                     message=f'Activation : {activation_url}',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
                     html_message=html_message,
                     fail_silently=False,
                 )
             except Exception:
-                user.is_active = True
-                user.save()
-                login(request, user)
-                messages.success(request, "Compte créé avec succès !")
-                return redirect('tableau_de_bord')
+                logger.exception("Email d'activation non envoyé à %s", user.email)
+                if getattr(settings, 'ALLOW_SIGNUP_WITHOUT_EMAIL', False):
+                    # Option explicite (ALLOW_SIGNUP_WITHOUT_EMAIL=True) : compte activé sans vérification
+                    user.is_active = True
+                    user.save()
+                    login(request, user)
+                    messages.success(request, "Compte créé avec succès !")
+                    return redirect('tableau_de_bord')
+                messages.error(
+                    request,
+                    "Votre compte a été créé, mais l'email d'activation n'a pas pu être envoyé. "
+                    "Contactez l'administrateur pour activer votre compte."
+                )
+                return redirect('connexion')
 
             return render(request, 'users/activation_envoyee.html', {'email': user.email})
     else:
@@ -137,7 +148,7 @@ def connexion(request):
                             user_agent=ua, succes=True
                         )
                     except Exception:
-                        pass
+                        logger.exception("Historique de connexion non enregistré")
                     next_url = request.GET.get('next', '')
                     if not url_has_allowed_host_and_scheme(
                         next_url, allowed_hosts={request.get_host()},
@@ -160,7 +171,7 @@ def connexion(request):
                             user_agent=ua, succes=False
                         )
                 except Exception:
-                    pass
+                    logger.exception("Historique de connexion (échec) non enregistré")
                 messages.error(request, "Mot de passe incorrect.")
 
     return render(request, 'users/connexion.html')
@@ -259,10 +270,9 @@ def password_reset_request(request):
                 'users/emails/reset_password_email.html',
                 {'user': user, 'reset_url': reset_url}
             )
-            send_mail(
+            envoyer_mail(
                 subject='Bwana Facturation — Réinitialisation mot de passe',
                 message=f'Reset : {reset_url}',
-                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
                 html_message=html_message,
                 fail_silently=False,
