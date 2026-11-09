@@ -1,8 +1,1 @@
 # BwanaFacturation
-Application Django (devis, factures, clients, produits, taxes).
-
-## Déploiement production — voir `deploy/README.md`
-1. `git push origin main` (ce dépôt contient déjà les correctifs de production)
-2. DNS `bwanafacturation.bwhub.tech` → 2.24.110.102
-3. `deploy/bd-server/install_bd.sh` sur le serveur BD (2.25.102.16)
-4. `deploy/web-server/install_web.sh` sur le serveur web (2.24.110.102)
