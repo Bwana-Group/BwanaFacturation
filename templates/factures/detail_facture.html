@@ -265,7 +265,7 @@
                             {% for ligne in lignes %}
                             <tr>
                                 <td data-label="Description">
-                                    <div class="fw-semibold">{{ ligne.description }}</div>
+                                    <div class="fw-semibold" style="white-space: pre-line;">{{ ligne.description }}</div>
                                     {% if ligne.produit %}
                                         <small class="text-muted">
                                             <i class="bi bi-box-seam me-1"></i>{{ ligne.produit.reference }}

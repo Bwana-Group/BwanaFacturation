@@ -336,7 +336,7 @@ class LigneDevis(models.Model):
         verbose_name="Produit du catalogue"
     )
     
-    description = models.CharField(max_length=255, verbose_name="Description")
+    description = models.TextField(verbose_name="Description")
     quantite = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Quantité")
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Prix unitaire HT")
     tva = models.DecimalField(max_digits=5, decimal_places=2, default=0, blank=True, null=True, verbose_name="TVA (%)")

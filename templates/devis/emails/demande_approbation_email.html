@@ -12,7 +12,7 @@
             <td style="background:#0f1f33; padding:28px 32px; color:#ffffff;">
                 <div style="font-size:12px; letter-spacing:2px; text-transform:uppercase; opacity:.75;">Approbation demandée</div>
                 <div style="font-size:24px; font-weight:bold; margin-top:4px;">Devis {{ devis.numero }}</div>
-                <div style="font-size:14px; opacity:.8; margin-top:4px;">Client : {{ client.nom_complet|default:client.nom }}{% if client.entreprise %} · {{ client.entreprise }}{% endif %}</div>
+                <div style="font-size:14px; opacity:.8; margin-top:4px;">Émis par <strong>{{ utilisateur.get_full_name|default:utilisateur.username }}</strong> pour <strong>{{ client.nom_complet|default:client.nom }}</strong>{% if client.entreprise %} · {{ client.entreprise }}{% endif %}</div>
             </td>
         </tr>
         <tr>

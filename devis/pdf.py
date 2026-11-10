@@ -10,6 +10,7 @@ from reportlab.platypus import (
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from io import BytesIO
 import os
+from xml.sax.saxutils import escape
 
 MOIS_FR = {
     1: 'janvier', 2: 'février', 3: 'mars', 4: 'avril',
@@ -69,6 +70,11 @@ def montant_en_lettres(montant, devise='FCFA'):
         return resultat.strip().capitalize()
     except Exception:
         return str(montant)
+
+
+def texte_pdf(texte):
+    """Texte libre affiché en entier dans le PDF (caractères spéciaux et retours à la ligne)."""
+    return escape(texte or '').replace('\n', '<br/>')
 
 
 def _get_profil(utilisateur):
@@ -320,8 +326,8 @@ def generer_pdf_devis(devis):
     for ligne in lignes:
         montant_ht = ligne.quantite * ligne.prix_unitaire
         rows.append([
-            Paragraph(ligne.description, s_normal),
-            Paragraph(ligne.description, s_small),
+            Paragraph(texte_pdf(ligne.produit.nom if getattr(ligne, 'produit_id', None) else ligne.description), s_normal),
+            Paragraph(texte_pdf(ligne.description), s_small),
             Paragraph(str(ligne.quantite).rstrip('0').rstrip('.'), s_center),
             Paragraph(f"{ligne.prix_unitaire:,.2f}", s_right),
             Paragraph(f"{montant_ht:,.2f}", s_right),

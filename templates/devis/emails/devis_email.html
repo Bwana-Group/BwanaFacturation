@@ -12,6 +12,7 @@
             <td style="background:#1e3a5f; padding:28px 32px; color:#ffffff;">
                 <div style="font-size:12px; letter-spacing:2px; text-transform:uppercase; opacity:.75;">Devis</div>
                 <div style="font-size:24px; font-weight:bold; margin-top:4px;">{{ devis.numero }}</div>
+                <div style="font-size:14px; opacity:.8; margin-top:4px;">Émis par <strong>{{ utilisateur.get_full_name|default:utilisateur.username }}</strong> pour <strong>{{ client.nom_complet|default:client.nom }}</strong>{% if client.entreprise %} · {{ client.entreprise }}{% endif %}</div>
                 {% if utilisateur.profil.nom_entreprise %}<div style="font-size:14px; opacity:.8; margin-top:4px;">{{ utilisateur.profil.nom_entreprise }}</div>{% endif %}
             </td>
         </tr>

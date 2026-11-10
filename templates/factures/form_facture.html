@@ -148,11 +148,9 @@
                                     </select>
                                  </td>
                                 <td data-label="Description">
-                                    <input type="text"
-                                           name="lignes-{{ forloop.counter0 }}-description"
-                                           value="{{ ligne.description }}"
-                                           class="form-control form-control-sm description-input"
-                                           placeholder="Description">
+                                    <textarea name="lignes-{{ forloop.counter0 }}-description" rows="2"
+                                              class="form-control form-control-sm description-input" style="resize: vertical; min-height: 38px;"
+                                              placeholder="Description">{{ ligne.description }}</textarea>
                                  </td>
                                 <td data-label="Qté">
                                     <input type="number"
@@ -211,11 +209,9 @@
                                     </select>
                                  </td>
                                 <td data-label="Description">
-                                    <input type="text"
-                                           name="lignes-{{ forloop.counter0 }}-description"
-                                           value=""
-                                           class="form-control form-control-sm description-input"
-                                           placeholder="Description">
+                                    <textarea name="lignes-{{ forloop.counter0 }}-description" rows="2"
+                                              class="form-control form-control-sm description-input" style="resize: vertical; min-height: 38px;"
+                                              placeholder="Description"></textarea>
                                  </td>
                                 <td data-label="Qté">
                                     <input type="number"
@@ -1018,8 +1014,8 @@ if (btnAjouter) {
                 </select>
             </td>
             <td data-label="Description">
-                <input type="text" name="lignes-${index}-description"
-                       class="form-control form-control-sm description-input" placeholder="Description">
+                <textarea name="lignes-${index}-description" rows="2"
+                          class="form-control form-control-sm description-input" style="resize: vertical; min-height: 38px;" placeholder="Description"></textarea>
             </td>
             <td data-label="Qté">
                 <input type="number" name="lignes-${index}-quantite"

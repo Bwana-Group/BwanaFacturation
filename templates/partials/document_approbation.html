@@ -70,7 +70,7 @@
                     <tbody>
                         {% for ligne in doc.lignes.all %}
                         <tr>
-                            <td>{{ ligne.description }}</td>
+                            <td style="white-space: pre-line;">{{ ligne.description }}</td>
                             <td class="text-center">{{ ligne.quantite|floatformat:"-2" }}</td>
                             <td class="text-end text-nowrap">{{ ligne.prix_unitaire|floatformat:"2g" }} {{ devise }}</td>
                             <td class="text-end text-nowrap fw-semibold">{{ ligne.total_ht|floatformat:"2g" }} {{ devise }}</td>

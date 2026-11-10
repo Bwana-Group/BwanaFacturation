@@ -2,25 +2,13 @@ from django.utils import timezone
 
 
 def generer_numero_devis(user):
+    """DEV-AAAAMMJJ-NNNN : date du jour, puis numéro d'ordre du jour (repart à 0001 chaque jour)."""
     from .models import Devis
-    annee = timezone.now().year
-    mois = timezone.now().month
-    
-    # Compter les devis de l'utilisateur ce mois
-    count = Devis.objects.filter(
-        utilisateur=user,
-        date_creation__year=annee,
-        date_creation__month=mois
-    ).count()
-    
-    numero = f"DEV-{annee}{mois:02d}-{(count + 1):04d}"
-    
-    # S'assurer que le numéro est unique
-    while Devis.objects.filter(numero=numero).exists():
-        count += 1
-        numero = f"DEV-{annee}{mois:02d}-{(count + 1):04d}"
-    
-    return numero
+    prefixe = f"DEV-{timezone.localdate():%Y%m%d}-"
+    rang = Devis.objects.filter(numero__startswith=prefixe).count() + 1
+    while Devis.objects.filter(numero=f"{prefixe}{rang:04d}").exists():
+        rang += 1
+    return f"{prefixe}{rang:04d}"
 
 
 def generer_numero_facture(user):

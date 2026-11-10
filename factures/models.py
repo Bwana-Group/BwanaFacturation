@@ -317,7 +317,7 @@ class Facture(models.Model):
 
 class LigneFacture(models.Model):
     facture = models.ForeignKey(Facture, on_delete=models.CASCADE, related_name='lignes')
-    description = models.CharField(max_length=255)
+    description = models.TextField(verbose_name="Description")
     quantite = models.DecimalField(max_digits=10, decimal_places=2)
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2)
     # ✅ TVA à 0 par défaut (taxe globale uniquement)

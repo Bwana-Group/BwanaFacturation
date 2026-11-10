@@ -204,8 +204,8 @@ class LigneDevisForm(forms.ModelForm):
         model = LigneDevis
         fields = ['description', 'quantite', 'prix_unitaire']
         widgets = {
-            'description': forms.TextInput(attrs={
-                'class': 'form-control description-input',
+            'description': forms.Textarea(attrs={
+                'class': 'form-control description-input', 'rows': 2,
                 'placeholder': 'Description du produit/service'
             }),
             'quantite': forms.NumberInput(attrs={
